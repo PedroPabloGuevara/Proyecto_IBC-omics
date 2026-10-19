@@ -1,2 +1,3 @@
 # Proyecto_IBC-omics
-proyecto Estructura de Datos .
+proyecto Estructura de Datos . negros
+
