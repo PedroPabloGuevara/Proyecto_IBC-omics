@@ -1,0 +1,91 @@
+struct Pase {
+    int tipoPase;   /* infantil (1), familiar(2), general(3), prioritario(4) */
+    int codigo;     /* codigo unico */
+    int valor;
+    int estado;     /* activo (1), anulado(2), utilizado(3), vencido(4) */
+    char *fecha;
+    char *hora;
+};
+
+struct NodoPase {
+    struct Pase *paseVigente; /* Puntero al pase almacenado en el nodo */
+    struct NodoPase *sig;
+};
+
+struct pasesDelDia {
+    struct NodoPase *head;
+};
+
+
+struct Fila {
+    struct NodoPase *head;
+    struct NodoPase *tail;
+};
+
+struct Cliente {
+    char *nombre;
+    struct Pase **pases;       /* Apunta a un arreglo de pases */
+    int rut;
+    int plibrepases;
+    
+};
+
+struct NodoCliente {
+    struct Cliente dato;
+    struct NodoCliente *sig;
+};
+
+struct Reserva {
+    struct Cliente*reservador;
+    int tipoPase;
+};
+struct NodoReserva{
+    struct Reserva *dato;
+     struct NodoReserva *sig;
+};
+
+
+struct Libro {
+    int codigo;
+    char *nombre;
+    int precio;
+    int ejemplaresDisponibles;
+    char *publicacion;
+    int clasificacionEdad;
+    int disponibilidad;
+    char *genero;
+    char *fechaPublicacion;
+    int deColeccion;
+    struct NodoReserva *headReserva;
+};
+
+struct NodoLibro {
+    struct Libro dato;
+    struct NodoLibro *izq;
+    struct NodoLibro *der;
+};
+
+
+struct SalaTematica {
+    char *tematica;
+    int codigo;
+    int aforoAprox;
+    struct NodoLibro *raiz;
+};
+
+struct NodoSala {
+    struct SalaTematica dato;
+    struct NodoSala *sig;
+    struct NodoSala *ant;
+};
+
+struct Tienda {
+    struct NodoSala *headSalas;   /* Lista doble de salas */
+    struct NodoCliente *headClientes;      /* Lista circular de clientes */
+    struct Fila *filaEntrada;                   /* fila de ingreso FIFO */
+    struct pasesDelDia *filaPasesDeldia;            /* fila/lista de pases del día */
+    int recaudacion;
+    char *hora_inicio;
+    char *hora_termino;
+    char *fecha;
+};
