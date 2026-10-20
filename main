@@ -31,7 +31,7 @@ struct Cliente {
 };
 
 struct NodoCliente {
-    struct Cliente dato;
+    struct Cliente *dato;
     struct NodoCliente *sig;
 };
 
@@ -60,7 +60,7 @@ struct Libro {
 };
 
 struct NodoLibro {
-    struct Libro dato;
+    struct Libro *dato;
     struct NodoLibro *izq;
     struct NodoLibro *der;
 };
@@ -74,7 +74,7 @@ struct SalaTematica {
 };
 
 struct NodoSala {
-    struct SalaTematica dato;
+    struct SalaTematica *dato;
     struct NodoSala *sig;
     struct NodoSala *ant;
 };
