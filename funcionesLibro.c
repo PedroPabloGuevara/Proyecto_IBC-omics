@@ -1,0 +1,184 @@
+/*
+-inserta un nodo de libro en el arbol binario de busqueda, ordenado por codigo
+-los codigos menores van a la izquierda y los mayores a la derecha
+-no permite codigos repetidos
+-recibe la raiz por doble puntero porque puede cambiar cuando el arbol esta vacio
+-retorna 1 si se inserto, 0 si el codigo ya existia
+*/
+
+int insertarLibro(struct NodoLibro **raiz, struct NodoLibro *nuevo) {
+    if (*raiz == NULL) {
+        *raiz = nuevo ;
+        return 1 ; /*se engancha el nuevo nodo al arbol*/
+    }
+
+    if (nuevo->dato->codigo < (*raiz)->dato->codigo) {
+        return insertarLibro(&((*raiz)->izq), nuevo) ;
+
+    } else if (nuevo->dato->codigo > (*raiz)->dato->codigo) {
+        return insertarLibro(&((*raiz)->der), nuevo) ;
+
+    } else {
+        /*el codigo ya existe, no se inserta*/
+        return 0 ;
+    }
+}
+
+/*
+-indica si ya existe un libro con el codigo dado
+-se usa en el menu antes de crear un libro, para no pedir datos de mas
+-retorna 1 si el codigo existe, 0 si no existe
+*/
+int existeLibro(struct NodoLibro *raiz, int codigo){
+    return buscarLibro(raiz, codigo) != NULL ;
+}
+
+/*
+-cuenta cuantos libros hay en el arbol
+-retorna la cantidad de libros, 0 si el arbol esta vacio
+*/
+
+int contarLibros(struct NodoLibro *raiz) {
+    if (raiz == NULL) {
+        return 0 ; /*no hay libros en este subarbol*/
+    }
+    
+    /*cuenta este libro y los de los subarboles izquierdo y derecho*/
+    return 1 + contarLibros(raiz->izq) + contarLibros(raiz->der) ;
+}
+
+/*
+-muestra todos los libros del arbol recorriendolo en preorden
+-en cada nodo muestra el codigo y el nombre del libro
+-primero el nodo actual, luego el subarbol izquierdo y luego el derecho
+-solo recibe la raiz, no modifica el arbol por el puntero, por eso no es doble puntero
+*/
+void mostrarLibrosPreorden(struct NodoLibro *raiz) {
+
+    /*caso base: arbol vacio, no hay nada que mostrar*/
+    if (raiz == NULL) {
+        return ;
+    }
+
+    printf("Codigo: %d, Nombre: %s\n", raiz->dato->codigo, raiz->dato->nombre) ;
+    listarLibrosPreorden(raiz->izq) ;
+    listarLibrosPreorden(raiz->der) ;
+}
+
+/*
+-registra la venta de un ejemplar: baja ejemplaresDisponibles en 1
+-no vende si el libro no existe, esta descatalogado o no tiene stock
+-si despues de vender quedan 0 ejemplares, marca el libro como agotado (2)
+-recibe la raiz del arbol y el codigo del libro
+-retorna 1 si vendio, 0 si no se pudo vender
+-si retorna 0 por falta de stock, el menu debe mandar al cliente a la cola de reservas
+*/
+
+int venderEjemplar(struct NodoLibro *raiz, int codigo) {
+
+    struct NodoLibro *nodo ;
+    nodo = buscarLibro(raiz, codigo) ;
+
+    if (nodo == NULL) {
+        return 0 ; /*no se encontro el libro*/
+    }
+
+    if (nodo->dato->disponibilidad == 4) {
+        return 0 ; /*descatalogado (4): no se vende*/
+    }
+
+    if (nodo->dato->ejemplaresDisponibles <= 0) {
+        return 0 ; /*no hay stock*/
+    }
+
+    nodo->dato->ejemplaresDisponibles-- ;
+
+    if (nodo->dato->ejemplaresDisponibles == 0) {
+        nodo->dato->disponibilidad = 2 ; /*se vendio el ultimo ejemplar: agotado (2)*/
+    }
+
+    return 1 ; /*venta realizada*/
+}
+
+/*
+-registra la llegada de un despacho: sube ejemplaresDisponibles en la cantidad recibida
+-no acepta cantidades menores o iguales a 0 ni libros descatalogados (4)
+-si el libro estaba agotado (2), vuelve a quedar disponible (1)
+-recibe la raiz del arbol, el codigo del libro y la cantidad de ejemplares que llegaron
+-retorna 1 si se registro el despacho, 0 si no se pudo
+*/
+
+int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
+
+    struct NodoLibro *nodo ;
+    nodo = buscarLibro(raiz, codigo) ;
+
+    if (nodo == NULL) {
+        return 0 ; /*no se encontro el libro*/
+    }
+
+    if (cantidad <= 0) {
+        return 0 ; /*cantidad invalida*/
+    }
+
+    if (nodo->dato->disponibilidad == 4) {
+        return 0 ; /*descatalogado (4): no recibe despachos*/
+    }
+
+    nodo->dato->ejemplaresDisponibles += cantidad ;
+
+    if (nodo->dato->disponibilidad == 2) {
+        nodo->dato->disponibilidad = 1 ; /*vuelve a haber stock: disponible (1)*/
+    }
+
+    return 1 ; /*despacho registrado*/
+}
+
+
+/*
+-elimina un libro del arbol segun su codigo y libera su memoria
+-recibe la raiz por doble puntero porque puede cambiar (por ejemplo, al eliminar la raiz)
+-sin hijos o con un hijo: el padre pasa a apuntar al hijo (o a NULL) y se libera el nodo
+-con dos hijos: se intercambian los libros entre el nodo y su sucesor (menor del subarbol derecho) y se elimina el sucesor, que tiene a lo mas un hijo
+-retorna 1 si se elimino, 0 si no existe un libro con ese codigo
+*/
+
+int eliminarLibro(struct NodoLibro **raiz, int codigo) {
+
+    struct NodoLibro *aux ;
+    struct Libro *libro ;
+
+    /*caso base: lugar vacio, el codigo no existe*/
+    if (*raiz == NULL) {
+        return 0 ;
+    }
+
+    /*se busca el nodo igual que en insertarLibro*/
+    if (codigo < (*raiz)->dato->codigo) {
+        return eliminarLibro(&((*raiz)->izq), codigo) ;
+    }
+    if (codigo > (*raiz)->dato->codigo) {
+        return eliminarLibro(&((*raiz)->der), codigo) ;
+    }
+
+    /*dos hijos: el libro a eliminar pasa al sucesor y se elimina desde ahi*/
+    if ((*raiz)->izq != NULL && (*raiz)->der != NULL) {
+        aux = menorNodo((*raiz)->der) ;
+        libro = (*raiz)->dato ;
+        (*raiz)->dato = aux->dato ;
+        aux->dato = libro ;
+        return eliminarLibro(&((*raiz)->der), codigo) ;
+    }
+
+    /*sin hijos o un hijo: el padre apunta al unico hijo (o a NULL si es hoja)*/
+    aux = *raiz ;
+    if (aux->izq != NULL) {
+        *raiz = aux->izq ;
+    } else {
+        *raiz = aux->der ;
+    }
+
+    liberarLibro(aux->dato) ;   /*libera el libro y sus textos*/
+    free(aux) ;                 /*libera el nodo*/
+    return 1 ;
+}
