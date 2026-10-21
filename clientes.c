@@ -1,19 +1,16 @@
 #define MAXPASES 50
 #include <string.h>
 
-struct Cliente *crearCliente()
+struct Cliente *crearCliente(char *nombre, int rut)
 {
     struct Cliente *nuevo;
-    int i, size;
-    char buffer[50]; /* espacio temporal */
+    int i, tam;
     nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
 
-    scanf(" %49[^\n]", buffer); /* ingresar nombre. [^\n] lee hasta salto de linea */
-    size=strlen(buffer);
-    nuevo->nombre=((char *)malloc((size+1)*sizeof(char)));
-    strcpy(nuevo->nombre, buffer);
-
-    scanf("%d", &nuevo->rut); /* ingresar rut */
+    tam=strlen(nombre);
+    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));
+    strcpy(nuevo->nombre, nombre);
+    nuevo->rut=rut;
 
     nuevo->pases=((struct Pase **)malloc(MAXPASES*sizeof(struct Pase *))); /* arr pases */
     for(i=0; i<MAXPASES; i++)
@@ -72,16 +69,12 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
     }
 }
 
-int agregarCliente(struct NodoCliente **head) /* retorna 1 se lo agrego, 0 si el rut ya existia */
+int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 1 si lo agrego, 0 si el rut ya existia */
 {
-    struct Cliente *dato;
-
-    dato=crearCliente();
-    if(buscarCliente(*head, dato->rut)!=NULL)
-    {
+    if (buscarCliente(*head, rut)!=NULL) {
         return 0;
     }
-    enlazarCliente(head, crearNodoCliente(dato));
+    enlazarCliente(head,crearNodoCliente(crearCliente(nombre, rut)));
     return 1;
 }
 
@@ -116,7 +109,7 @@ int eliminarCliente(struct NodoCliente **head, int rut)
         return 0; /* no se encontro */
     }
 
-    if(act->sig==act) /* por si era el unico nodo y lista queda vacia */
+    if(act->sig==act) /* por si es el unico nodo -> lista queda vacia */
     {
         *head=NULL;
     }
@@ -133,11 +126,10 @@ int eliminarCliente(struct NodoCliente **head, int rut)
     return 1;
 }
 
-int modificarCliente(struct NodoCliente *head, int rut) /* 1 : se modifico, 0: no existe, -1: rut ya existe */
+int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) /* 1 : se modifico, 0: no existe, -1: rut ya existe */
 {
     struct NodoCliente *nodo;
-    int nuevoRut, size;
-    char buffer[50];
+    int tam;
 
     nodo=buscarCliente(head, rut);
     if(nodo==NULL)
@@ -145,20 +137,15 @@ int modificarCliente(struct NodoCliente *head, int rut) /* 1 : se modifico, 0: n
         return 0;
     }
 
-    printf("nuevo nombre: ");
-    scanf(" %49[^\n]", buffer);
-    printf("nuevo rut: ");
-    scanf("%d", &nuevoRut);
-
     if(nuevoRut!=rut && buscarCliente(head, nuevoRut)!=NULL) /* rut no puede pertenecer a otro cliente */
     {
         return -1;
     }
 
     /* reservar memoria para nombre y copiar */
-    size=strlen(buffer);
-    nodo->dato->nombre=((char *)malloc((size+1)*sizeof(char)));
-    strcpy(nodo->dato->nombre, buffer);
+    tam=strlen(nuevoNombre);
+    nodo->dato->nombre=((char *)malloc((tam+1)*sizeof(char)));
+    strcpy(nodo->dato->nombre, nuevoNombre);
     nodo->dato->rut=nuevoRut;
 
     return 1;
