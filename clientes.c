@@ -7,8 +7,8 @@ struct Cliente *crearCliente(char *nombre, int rut)
     int i, tam;
     nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
 
-    tam=strlen(nombre);
-    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));
+    tam=strlen(nombre);/*demas*/
+    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));/*demas*/
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
@@ -77,25 +77,20 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     enlazarCliente(head,crearNodoCliente(crearCliente(nombre, rut)));
     return 1;
 }
-
-int eliminarCliente(struct NodoCliente **head, int rut)
-{
+/*tiene anterior era circular simple*/
+int eliminarCliente(struct NodoCliente **head, int rut){
+    
     struct NodoCliente *act, *ant; /* actual y anterior */
 
-    if(*head==NULL)
-    {
+    if(*head==NULL){
         return 0;
     }
-
     ant=*head;
-    while(ant->sig!=*head)
-    {
+    while(ant->sig!=*head){
         ant=ant->sig;
     }
-
     act=*head;
-    do /* buscar el nodo a eliminar */
-    {
+    do /* buscar el nodo a eliminar */{
         if(act->dato->rut==rut)
         {
             break;
