@@ -8,7 +8,7 @@ struct Cliente *crearCliente(char *nombre, int rut)
     nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
 
     tam=strlen(nombre);/*demas*/
-    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));/*demas*/
+    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));/*modificar*/
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
