@@ -4,9 +4,11 @@
 #include "cola.h"
 
 /*
- * Crea una cola vacia e inicializa sus extremos y contador.
- * Retorna NULL si no se puede reservar memoria.
- */
+-crea una cola de reservas vacia en memoria dinamica
+-head y tail quedan en NULL y cantidad en 0
+-si falla la reserva de memoria retorna NULL
+-retorna el puntero a la cola creada
+*/
 struct ColaReservas *crearCola(void) {
     struct ColaReservas *nuevaCola = malloc(sizeof(*nuevaCola));
     if (nuevaCola == NULL) {
@@ -20,9 +22,12 @@ struct ColaReservas *crearCola(void) {
 }
 
 /*
- * Crea una reserva asociada a un cliente existente; el cliente no se copia
- * ni pasa a ser propiedad de la reserva.
- */
+-crea una reserva en memoria dinamica
+-guarda un puntero al cliente que reserva, no lo copia ni pasa a ser propietario de el
+-guarda el tipo de pase: infantil (1), familiar (2), general (3), prioritario (4)
+-si el cliente es NULL o falla la reserva de memoria retorna NULL
+-retorna el puntero a la reserva creada
+*/
 struct Reserva *crearReserva(struct Cliente *reservador, int tipoPase) {
     struct Reserva *nuevaReserva;
 
@@ -41,8 +46,11 @@ struct Reserva *crearReserva(struct Cliente *reservador, int tipoPase) {
 }
 
 /*
- * Crea un nodo que contiene la reserva y comienza sin un nodo siguiente.
- */
+-envuelve una reserva en un nodo para poder meterla en la cola
+-el nodo nace con sig en NULL
+-si la reserva es NULL o falla la reserva de memoria retorna NULL
+-retorna el puntero al nodo creado
+*/
 struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
     struct NodoReserva *nuevoNodo;
 
@@ -61,9 +69,12 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
 }
 
 /*
- * Inserta la reserva normal al final. Las prioritarias (tipo 4) se insertan
- * despues de las prioritarias existentes y antes de las normales.
- */
+-agrega una reserva a la cola segun su tipo de pase
+-normal (tipo distinto de 4): va al final de la cola
+-prioritario (tipo 4): va delante de los normales, pero detras de los prioritarios que ya estaban
+-si la cola, el nodo o la reserva son NULL, no realiza cambios
+-si el nodo queda como ultimo, se actualiza tail
+*/
 void encolar(struct ColaReservas *cola, struct NodoReserva *nuevo) {
     struct NodoReserva *rec;
 
@@ -72,16 +83,24 @@ void encolar(struct ColaReservas *cola, struct NodoReserva *nuevo) {
     }
 
     nuevo->sig = NULL;
+
+    /* caso 1: cola vacia, el nuevo nodo queda como head y tail */
     if (cola->head == NULL) {
         cola->head = nuevo;
         cola->tail = nuevo;
-    } else if (nuevo->dato->tipoPase != 4) {
+    }
+    /* caso 2: reserva normal, se agrega al final */
+    else if (nuevo->dato->tipoPase != 4) {
         cola->tail->sig = nuevo;
         cola->tail = nuevo;
-    } else if (cola->head->dato->tipoPase != 4) {
+    }
+    /* caso 3: prioritario y el primero es normal, pasa a ser el nuevo head */
+    else if (cola->head->dato->tipoPase != 4) {
         nuevo->sig = cola->head;
         cola->head = nuevo;
-    } else {
+    }
+    /* caso 4: se inserta despues del ultimo prioritario */
+    else {
         rec = cola->head;
         while (rec->sig != NULL && rec->sig->dato->tipoPase == 4) {
             rec = rec->sig;
@@ -98,9 +117,11 @@ void encolar(struct ColaReservas *cola, struct NodoReserva *nuevo) {
 }
 
 /*
- * Quita y retorna el primer nodo, actualizando head, tail y cantidad.
- * El nodo queda separado de la cola y debe ser liberado por quien lo recibe.
- */
+-atiende al primero de la cola: lo desengancha y lo retorna
+-si la cola esta vacia o es NULL, retorna NULL
+-si la cola queda vacia, tail tambien pasa a NULL
+-quien llama debe liberar el nodo y la reserva cuando termine de usarlos
+*/
 struct NodoReserva *desencolar(struct ColaReservas *cola) {
     struct NodoReserva *aux;
 
@@ -108,6 +129,7 @@ struct NodoReserva *desencolar(struct ColaReservas *cola) {
         return NULL;
     }
 
+    /* se guarda el primero y se mueve head al nodo siguiente */
     aux = cola->head;
     cola->head = aux->sig;
     if (cola->head == NULL) {
@@ -120,15 +142,18 @@ struct NodoReserva *desencolar(struct ColaReservas *cola) {
 }
 
 /*
- * Retorna el numero de reservas en espera; para una cola NULL retorna cero.
- */
+-retorna cuantas personas esperan en la cola
+-si la cola es NULL retorna 0
+*/
 int cantidadEnEspera(struct ColaReservas *cola) {
     return cola == NULL ? 0 : cola->cantidad;
 }
 
 /*
- * Imprime las reservas en orden de atencion y marca las prioritarias.
- */
+-muestra las reservas en orden de atencion
+-imprime posicion, nombre del cliente y si es prioritaria
+-si la cola esta vacia o es NULL, informa que no hay clientes esperando
+*/
 void mostrarCola(struct ColaReservas *cola) {
     struct NodoReserva *rec;
     int pos = 1;
@@ -149,9 +174,11 @@ void mostrarCola(struct ColaReservas *cola) {
 }
 
 /*
- * Libera cada nodo y su reserva, y al final la cola. No libera a los clientes,
- * que son propiedad de la lista de clientes.
- */
+-libera todos los nodos de la cola y sus reservas
+-NO libera a los clientes, pertenecen a la lista de clientes
+-si la cola es NULL, no realiza cambios
+-al final libera la cola misma
+*/
 void liberarCola(struct ColaReservas *cola) {
     struct NodoReserva *rec;
 
