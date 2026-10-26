@@ -36,14 +36,23 @@ struct NodoCliente {
     struct NodoCliente *sig;
 };
 
+/* Reserva un tipo de pase para un cliente, sin copiar ni poseer al cliente. */
 struct Reserva {
     struct Cliente *reservador;
     int tipoPase;
 };
 
+/* Nodo enlazado que guarda una reserva en la cola. */
 struct NodoReserva {
     struct Reserva *dato;
     struct NodoReserva *sig;
+};
+
+/* Cola enlazada: head es el proximo en atenderse, tail el ultimo y cantidad su total. */
+struct ColaReservas {
+    struct NodoReserva *head;
+    struct NodoReserva *tail;
+    int cantidad;
 };
 
 struct Libro {

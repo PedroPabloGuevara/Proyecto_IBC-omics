@@ -197,7 +197,6 @@ int descatalogarLibro(struct NodoLibro *raiz, int codigo) {
 -libera toda la memoria dinamica de un libro
 -primero libera los 4 textos y al final el struct, porque si se libera el struct antes ya no se puede acceder a sus textos
 -NO libera el nodo del arbol: eso lo hace eliminarLibro
--PENDIENTE: cuando exista la cola de reservas, agregar aqui liberarCola(libro->cola) antes del free del libro
 */
 
 void liberarLibro(struct Libro *libro) {
@@ -211,8 +210,6 @@ void liberarLibro(struct Libro *libro) {
     free(libro->publicacion) ;
     free(libro->genero) ;
     free(libro->fechaPublicacion) ;
-
-    /*PENDIENTE: liberar la cola de reservas aqui*/
 
     free(libro) ; /*siempre al final*/
 }

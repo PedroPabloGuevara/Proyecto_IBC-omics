@@ -41,7 +41,6 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
     nuevoLibro -> fechaPublicacion = (char *)malloc(strlen(fechaPublicacion) + 1) ;
     strcpy(nuevoLibro -> fechaPublicacion, fechaPublicacion) ;
     
-    /*inicializa la lista de reservas como vacia*/
     nuevoLibro -> headReserva = NULL ;
 
     return nuevoLibro ;
