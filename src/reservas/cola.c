@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "estructuras.h"
+#include "../../include/estructuras.h"
 
 /*
 -crea una cola de reservas vacia en memoria dinamica

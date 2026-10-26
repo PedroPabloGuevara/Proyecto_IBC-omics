@@ -1,4 +1,4 @@
-#include "../estructuras.h"
+#include "../../include/estructuras.h"
 
 #include <stdio.h>
 #include <stdlib.h>
