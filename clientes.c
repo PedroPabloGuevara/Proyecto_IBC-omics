@@ -12,8 +12,8 @@ struct Cliente *crearCliente(char *nombre, int rut)
     int i, tam;
     nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
 
-    tam=strlen(nombre);/*demas*/
-    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));/*modificar*/
+    tam=strlen(nombre);
+    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
@@ -82,43 +82,42 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     enlazarCliente(head,crearNodoCliente(crearCliente(nombre, rut)));
     return 1;
 }
-/*tiene anterior era circular simple*/
-int eliminarCliente(struct NodoCliente **head, int rut){
-    
-    struct NodoCliente *act, *ant; /* actual y anterior */
 
-    if(*head==NULL){
+/* al eliminar un cliente (nodo), el nodo anterior debe saltarse el eliminado. todos los nodos aqui solo tienen "sig" */
+/* "ant" sirve para recordar cual es el nodo anterior mientras recorre */
+int eliminarCliente(struct NodoCliente **head, int rut) {
+    
+    struct NodoCliente *act, *ant; /* ant esta justo antes de act */
+
+    if(*head==NULL){ /* en caso de que no hay clientes */
         return 0;
     }
     ant=*head;
-    while(ant->sig!=*head){
+    while(ant->sig!=*head) { /* deja ant en el ultimo nodo, que es el anterior al head en una lista circular */
         ant=ant->sig;
     }
-    act=*head;
-    do /* buscar el nodo a eliminar */{
+    
+    act=*head;  /* buscar el nodo a eliminar */
+    do {
         if(act->dato->rut==rut)
         {
-            break;
+            break; /* se encontro el rut, act se elimina y ant es el anterior */
         }
         ant=act;
         act=act->sig;
-    }while(act!=*head);
+    } while(act!=*head);
 
-    if(act->dato->rut!=rut)
-    {
+    if(act->dato->rut!=rut) {
         return 0; /* no se encontro */
     }
 
-    if(act->sig==act) /* por si es el unico nodo -> lista queda vacia */
-    {
+    if(act->sig==act) { /* por si es el unico nodo -> lista queda vacia */
         *head=NULL;
     }
-    else
-    {
-        ant->sig=act->sig;
+    else {
+        ant->sig=act->sig; /* el nodo anterior ahora apunta a lo que apuntaba el eliminado, asi el eliminado queda afuera */
 
-        if(act==*head) /* si eliminado era head, el head pasa al siguiente */
-        {
+        if(act==*head) { /* si eliminado era head, el head se pasa al siguiente */
             *head=act->sig;
         }
     }
@@ -126,19 +125,16 @@ int eliminarCliente(struct NodoCliente **head, int rut){
     return 1;
 }
 
-int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) /* 1 : se modifico, 0: no existe, -1: rut ya existe */
-{
+int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) { /* 1 : se modifico, 0: no existe, -1: rut ya existe */
     struct NodoCliente *nodo;
     int tam;
 
     nodo=buscarCliente(head, rut);
-    if(nodo==NULL)
-    {
+    if(nodo==NULL) {
         return 0;
     }
 
-    if(nuevoRut!=rut && buscarCliente(head, nuevoRut)!=NULL) /* rut no puede pertenecer a otro cliente */
-    {
+    if(nuevoRut!=rut && buscarCliente(head, nuevoRut)!=NULL) { /* rut no puede pertenecer a otro cliente */
         return -1;
     }
 
@@ -151,17 +147,15 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
     return 1;
 }
 
-void listarClientes(struct NodoCliente *head) /* mostrar clientes */
-{
+void listarClientes(struct NodoCliente *head) { /* mostrar clientes */
+    
     struct NodoCliente *rec=head;
     int cantidad=0;
 
-    if(rec==NULL)
-    {
+    if(rec==NULL) {
         printf("No hay clientes registrados.\n");
     }
-    else
-    {
+    else {
         do
         {
             cantidad++;
@@ -169,6 +163,6 @@ void listarClientes(struct NodoCliente *head) /* mostrar clientes */
                    cantidad, rec->dato->nombre, rec->dato->rut,
                    rec->dato->plibrepases);
             rec=rec->sig;
-        }while(rec!=head);
+        } while(rec!=head);
     }
 }
