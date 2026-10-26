@@ -1,3 +1,8 @@
+#include "estructuras.h"
+
+#include <stdlib.h>
+#include <string.h>
+
 struct SalaTematica *crearSala(char *tematica,int codigo,int aforoAprox){
 
     struct SalaTematica *nuevo;

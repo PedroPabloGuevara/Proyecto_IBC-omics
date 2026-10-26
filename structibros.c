@@ -1,3 +1,5 @@
+#include "funcionesLibro.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -97,4 +99,3 @@ struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
     }
     return raiz ;
 }
-
