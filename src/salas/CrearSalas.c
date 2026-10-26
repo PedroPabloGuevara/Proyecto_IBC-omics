@@ -7,8 +7,19 @@ struct SalaTematica *crearSala(char *tematica,int codigo,int aforoAprox){
 
     struct SalaTematica *nuevo;
 
-    nuevo = (struct SalaTematica*)malloc(sizeof(struct SalaTematica));
-    nuevo->tematica = (char*)malloc(strlen(tematica)+1*sizeof(char));
+    if (tematica == NULL) {
+        return NULL;
+    }
+
+    nuevo = malloc(sizeof(*nuevo));
+    if (nuevo == NULL) {
+        return NULL;
+    }
+    nuevo->tematica = malloc(strlen(tematica) + 1);
+    if (nuevo->tematica == NULL) {
+        free(nuevo);
+        return NULL;
+    }
     strcpy(nuevo->tematica,tematica);
     nuevo->codigo = codigo;
     nuevo->aforoAprox = aforoAprox;
@@ -22,7 +33,14 @@ struct NodoSala *crearNodoSala(struct SalaTematica *nuevaSala){
 
     struct NodoSala *nuevoNodo;
 
-    nuevoNodo = (struct NodoSala*) malloc(sizeof(struct NodoSala));
+    if (nuevaSala == NULL) {
+        return NULL;
+    }
+
+    nuevoNodo = malloc(sizeof(*nuevoNodo));
+    if (nuevoNodo == NULL) {
+        return NULL;
+    }
     nuevoNodo->dato = nuevaSala;
     nuevoNodo->sig = NULL;
     nuevoNodo->ant = NULL;
@@ -34,6 +52,12 @@ void insertarSala(struct NodoSala**headSalas,struct NodoSala *nuevaSala) {
 
     struct NodoSala *rec;
 
+    if (headSalas == NULL || nuevaSala == NULL) {
+        return;
+    }
+
+    nuevaSala->sig = NULL;
+    nuevaSala->ant = NULL;
     if (*headSalas == NULL) {
         *headSalas = nuevaSala;
     }else {

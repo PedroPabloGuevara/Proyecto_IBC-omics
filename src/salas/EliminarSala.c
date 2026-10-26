@@ -15,7 +15,7 @@ struct NodoSala *buscarSala(struct NodoSala *headSalas, int codigo) {
     return NULL;
 }
 
-static struct NodoSala *desenlazarSala(struct NodoSala **headSalas, int codigo) {
+struct NodoSala *desenlazarSala(struct NodoSala **headSalas, int codigo) {
     struct NodoSala *sala;
 
     if (headSalas == NULL) {
