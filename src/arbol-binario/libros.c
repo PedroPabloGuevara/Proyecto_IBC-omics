@@ -1,8 +1,22 @@
-#include "../../include/estructuras.h"
+#include "../../include/libros.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+char *copiarTexto(char *texto) {
+    char *copia;
+
+    if (texto == NULL) {
+        return NULL;
+    }
+
+    copia = malloc(strlen(texto) + 1);
+    if (copia != NULL) {
+        strcpy(copia, texto);
+    }
+    return copia;
+}
 
 /*
 -crea un libro en memoria dinamica con los datos recibidos
@@ -14,34 +28,33 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
     char *publicacion, int clasificacionEdad,
     int disponibilidad, char *genero, char *fechaPublicacion, int deColeccion) {
 
-    struct Libro *nuevoLibro ;
+    struct Libro *nuevoLibro = malloc(sizeof(*nuevoLibro));
+    if (nuevoLibro == NULL) {
+        return NULL;
+    }
 
-    nuevoLibro = (struct Libro *)malloc(sizeof(struct Libro)) ;
+    nuevoLibro->codigo = codigo;
+    nuevoLibro->nombre = NULL;
+    nuevoLibro->precio = precio;
+    nuevoLibro->ejemplaresDisponibles = ejemplares;
+    nuevoLibro->publicacion = NULL;
+    nuevoLibro->clasificacionEdad = clasificacionEdad;
+    nuevoLibro->disponibilidad = disponibilidad;
+    nuevoLibro->genero = NULL;
+    nuevoLibro->fechaPublicacion = NULL;
+    nuevoLibro->deColeccion = deColeccion;
+    nuevoLibro->headReserva = NULL;
+    nuevoLibro->recaudacionDia = 0;
 
-
-    /*los campos numericos se copian directamente*/
-    nuevoLibro -> codigo = codigo ;
-    nuevoLibro -> precio = precio ;
-    nuevoLibro -> ejemplaresDisponibles = ejemplares ;
-    nuevoLibro -> clasificacionEdad = clasificacionEdad ;
-    nuevoLibro -> disponibilidad = disponibilidad ;
-    nuevoLibro -> deColeccion = deColeccion ;
-
-
-    /*los campos de tipo char* se copian con malloc y strcpy para evitar problemas de memoria*/
-    nuevoLibro -> nombre = (char *)malloc(strlen(nombre) + 1) ;
-    strcpy(nuevoLibro -> nombre, nombre) ;
-
-    nuevoLibro -> publicacion = (char *)malloc(strlen(publicacion) + 1) ;
-    strcpy(nuevoLibro -> publicacion, publicacion) ;
-
-    nuevoLibro -> genero = (char *)malloc(strlen(genero) + 1) ;
-    strcpy(nuevoLibro -> genero, genero) ;
-
-    nuevoLibro -> fechaPublicacion = (char *)malloc(strlen(fechaPublicacion) + 1) ;
-    strcpy(nuevoLibro -> fechaPublicacion, fechaPublicacion) ;
-
-    nuevoLibro -> headReserva = NULL ;
+    nuevoLibro->nombre = copiarTexto(nombre);
+    nuevoLibro->publicacion = copiarTexto(publicacion);
+    nuevoLibro->genero = copiarTexto(genero);
+    nuevoLibro->fechaPublicacion = copiarTexto(fechaPublicacion);
+    if (nuevoLibro->nombre == NULL || nuevoLibro->publicacion == NULL ||
+        nuevoLibro->genero == NULL || nuevoLibro->fechaPublicacion == NULL) {
+        liberarLibro(nuevoLibro);
+        return NULL;
+    }
 
     return nuevoLibro ;
 }
@@ -53,8 +66,16 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
 
 struct NodoLibro *crearNodoLibro(struct Libro *dato) {
 
-    struct NodoLibro *nuevoNodo = (struct NodoLibro *)malloc(sizeof(struct NodoLibro)) ;
+    struct NodoLibro *nuevoNodo;
 
+    if (dato == NULL) {
+        return NULL;
+    }
+
+    nuevoNodo = malloc(sizeof(*nuevoNodo));
+    if (nuevoNodo == NULL) {
+        return NULL;
+    }
     nuevoNodo -> dato = dato ;
     nuevoNodo -> izq = NULL ;
     nuevoNodo -> der = NULL ;
@@ -91,10 +112,3 @@ struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo){
 -se usa para encontrar el sucesor cuando se elimina un nodo con dos hijos
 -recibe la raiz del subarbol, que no debe ser NULL
 */
-
-struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
-    while (raiz->izq != NULL) {
-        raiz = raiz->izq ;
-    }
-    return raiz ;
-}

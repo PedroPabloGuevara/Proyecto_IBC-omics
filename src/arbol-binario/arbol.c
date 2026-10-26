@@ -1,10 +1,92 @@
-#include "../../include/estructuras.h"
+#include "../../include/libros.h"
+#include "../../include/reservas.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo);
-struct NodoLibro *menorNodo(struct NodoLibro *raiz);
+struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
+    while (raiz->izq != NULL) {
+        raiz = raiz->izq;
+    }
+    return raiz;
+}
+
+int sumarRecaudacionArbol(struct NodoLibro *raiz, int *total) {
+    int recaudacionLibro;
+
+    if (raiz == NULL) {
+        return 1;
+    }
+
+    recaudacionLibro = raiz->dato->recaudacionDia;
+    if (recaudacionLibro < 0 || *total > INT_MAX - recaudacionLibro) {
+        return 0;
+    }
+
+    *total += recaudacionLibro;
+    return sumarRecaudacionArbol(raiz->izq, total) &&
+           sumarRecaudacionArbol(raiz->der, total);
+}
+
+void reiniciarRecaudacionArbol(struct NodoLibro *raiz) {
+    if (raiz == NULL) {
+        return;
+    }
+
+    raiz->dato->recaudacionDia = 0;
+    reiniciarRecaudacionArbol(raiz->izq);
+    reiniciarRecaudacionArbol(raiz->der);
+}
+
+void reiniciarRecaudacionSalas(struct NodoSala *sala) {
+    if (sala == NULL) {
+        return;
+    }
+
+    reiniciarRecaudacionArbol(sala->dato->raiz);
+    reiniciarRecaudacionSalas(sala->sig);
+}
+
+int sumarRecaudacionSalas(struct NodoSala *sala, int *total) {
+    if (sala == NULL) {
+        return 1;
+    }
+
+    return sumarRecaudacionArbol(sala->dato->raiz, total) &&
+           sumarRecaudacionSalas(sala->sig, total);
+}
+
+int calcularRecaudacionDiaria(struct Tienda *tienda) {
+    int recaudacionLibros;
+
+    if (tienda == NULL) {
+        return 0;
+    }
+
+    recaudacionLibros = 0;
+    if (tienda->recaudacionPasesDia < 0 ||
+        !sumarRecaudacionSalas(tienda->headSalas, &recaudacionLibros) ||
+        recaudacionLibros > INT_MAX - tienda->recaudacionPasesDia) {
+        return -1;
+    }
+
+    tienda->recaudacionLibrosDia = recaudacionLibros;
+    tienda->recaudacion =
+        tienda->recaudacionLibrosDia + tienda->recaudacionPasesDia;
+    return tienda->recaudacion;
+}
+
+void reiniciarRecaudacionDiaria(struct Tienda *tienda) {
+    if (tienda == NULL) {
+        return;
+    }
+
+    reiniciarRecaudacionSalas(tienda->headSalas);
+    tienda->recaudacionLibrosDia = 0;
+    tienda->recaudacionPasesDia = 0;
+    tienda->recaudacion = 0;
+}
 
 /*
 -inserta un nodo de libro en el arbol binario de busqueda, ordenado por codigo
@@ -15,6 +97,10 @@ struct NodoLibro *menorNodo(struct NodoLibro *raiz);
 */
 
 int insertarLibro(struct NodoLibro **raiz, struct NodoLibro *nuevo) {
+    if (raiz == NULL || nuevo == NULL || nuevo->dato == NULL) {
+        return 0;
+    }
+
     if (*raiz == NULL) {
         *raiz = nuevo ;
         return 1 ; /*se engancha el nuevo nodo al arbol*/
@@ -102,39 +188,76 @@ int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio) {
     return 1 ; /*se modifico el precio*/
 }
 
+int registrarVenta(struct Libro *libro, int cantidad, int rut,
+                   int tieneComprador) {
+    int unidadesVendidas;
+    int ingreso;
+
+    if (libro == NULL || cantidad <= 0 || libro->disponibilidad == 4 ||
+        libro->ejemplaresDisponibles <= 0 || libro->precio < 0 ||
+        libro->recaudacionDia < 0) {
+        return 0;
+    }
+
+    unidadesVendidas = cantidad;
+    if (unidadesVendidas > libro->ejemplaresDisponibles) {
+        unidadesVendidas = libro->ejemplaresDisponibles;
+    }
+
+    if (libro->precio > 0 &&
+        unidadesVendidas > (INT_MAX - libro->recaudacionDia) / libro->precio) {
+        return 0;
+    }
+
+    ingreso = unidadesVendidas * libro->precio;
+    libro->ejemplaresDisponibles -= unidadesVendidas;
+    libro->recaudacionDia += ingreso;
+
+    if (tieneComprador) {
+        eliminarReserva(libro, rut);
+    }
+
+    if (libro->ejemplaresDisponibles == 0) {
+        libro->disponibilidad = 2;
+    }
+
+    return unidadesVendidas;
+}
+
 /*
--registra la venta de un ejemplar: baja ejemplaresDisponibles en 1
--no vende si el libro no existe, esta descatalogado o no tiene stock
--si despues de vender quedan 0 ejemplares, marca el libro como agotado (2)
--recibe la raiz del arbol y el codigo del libro
--retorna 1 si vendio, 0 si no se pudo vender
--si retorna 0 por falta de stock, el menu debe mandar al cliente a la cola de reservas
+-registra la venta de un ejemplar cuando no se necesita identificar al comprador
+-no quita reservas de la lista porque no conoce el rut del cliente atendido
+-retorna 1 si vendio, 0 si no habia stock o no se pudo vender
 */
-
 int venderEjemplar(struct NodoLibro *raiz, int codigo) {
+    struct NodoLibro *nodo;
 
-    struct NodoLibro *nodo ;
-    nodo = buscarLibro(raiz, codigo) ;
-
+    nodo = buscarLibro(raiz, codigo);
     if (nodo == NULL) {
-        return 0 ; /*no se encontro el libro*/
+        return 0;
     }
 
-    if (nodo->dato->disponibilidad == 4) {
-        return 0 ; /*descatalogado (4): no se vende*/
+    return registrarVenta(nodo->dato, 1, 0, 0);
+}
+
+/*
+-vende hasta la cantidad solicitada o el stock disponible, lo que sea menor
+-retorna cuantas unidades vendio; retorna 0 si no se pudo vender
+-si el cliente tenia una reserva, retira solo su reserva; las demas conservan su orden
+*/
+int venderEjemplares(struct NodoLibro *raiz, int codigo, int rut, int cantidad) {
+    struct NodoLibro *nodo;
+
+    if (cantidad <= 0) {
+        return 0;
     }
 
-    if (nodo->dato->ejemplaresDisponibles <= 0) {
-        return 0 ; /*no hay stock*/
+    nodo = buscarLibro(raiz, codigo);
+    if (nodo == NULL) {
+        return 0;
     }
 
-    nodo->dato->ejemplaresDisponibles-- ;
-
-    if (nodo->dato->ejemplaresDisponibles == 0) {
-        nodo->dato->disponibilidad = 2 ; /*se vendio el ultimo ejemplar: agotado (2)*/
-    }
-
-    return 1 ; /*venta realizada*/
+    return registrarVenta(nodo->dato, cantidad, rut, 1);
 }
 
 /*
@@ -188,6 +311,7 @@ int descatalogarLibro(struct NodoLibro *raiz, int codigo) {
         return 0 ; /*no se encontro el libro*/
     }
 
+    vaciarCola(nodo->dato);
     nodo->dato->disponibilidad = 4 ; /*descatalogado (4)*/
 
     return 1 ; /*libro descatalogado*/
@@ -206,6 +330,7 @@ void liberarLibro(struct Libro *libro) {
         return ;
     }
 
+    vaciarCola(libro);
     free(libro->nombre) ;
     free(libro->publicacion) ;
     free(libro->genero) ;

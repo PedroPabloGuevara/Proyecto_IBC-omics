@@ -1,25 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../include/estructuras.h"
-
-/*
--crea una cola de reservas vacia en memoria dinamica
--head y tail quedan en NULL y cantidad en 0
--si falla la reserva de memoria retorna NULL
--retorna el puntero a la cola creada
-*/
-struct ColaReservas *crearCola(void) {
-    struct ColaReservas *nuevaCola = malloc(sizeof(*nuevaCola));
-    if (nuevaCola == NULL) {
-        return NULL;
-    }
-
-    nuevaCola->head = NULL;
-    nuevaCola->tail = NULL;
-    nuevaCola->cantidad = 0;
-    return nuevaCola;
-}
+#include "../../include/reservas.h"
 
 /*
 -crea una reserva en memoria dinamica
@@ -69,101 +51,143 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
 }
 
 /*
--agrega una reserva a la cola segun su tipo de pase
+-registra una reserva para un cliente en la lista del libro
+-permite reservar aunque no haya stock, salvo que el libro este descatalogado
+-retorna 1 si se agrego y 0 si la reserva no fue valida o falto memoria
+*/
+int reservarLibro(struct Libro *libro, struct Cliente *cliente, int tipoPase) {
+    struct Reserva *reserva;
+    struct NodoReserva *nodo;
+
+    if (libro == NULL || cliente == NULL || libro->disponibilidad == 4 ||
+        tipoPase < 1 || tipoPase > 4 ||
+        buscarReserva(libro, cliente->rut) != NULL) {
+        return 0;
+    }
+
+    reserva = crearReserva(cliente, tipoPase);
+    if (reserva == NULL) {
+        return 0;
+    }
+
+    nodo = crearNodoReserva(reserva);
+    if (nodo == NULL) {
+        free(reserva);
+        return 0;
+    }
+
+    encolar(libro, nodo);
+    return 1;
+}
+
+/*
+-agrega una reserva a la lista del libro segun su tipo de pase
 -normal (tipo distinto de 4): va al final de la cola
 -prioritario (tipo 4): va delante de los normales, pero detras de los prioritarios que ya estaban
--si la cola, el nodo o la reserva son NULL, no realiza cambios
--si el nodo queda como ultimo, se actualiza tail
+-si el libro, el nodo o la reserva son NULL, no realiza cambios
+-el nodo debe estar desligado de cualquier lista
 */
-void encolar(struct ColaReservas *cola, struct NodoReserva *nuevo) {
+void encolar(struct Libro *libro, struct NodoReserva *nuevo) {
     struct NodoReserva *rec;
 
-    if (cola == NULL || nuevo == NULL || nuevo->dato == NULL) {
+    if (libro == NULL || nuevo == NULL || nuevo->dato == NULL ||
+        nuevo->dato->reservador == NULL || libro->disponibilidad == 4 ||
+        nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 ||
+        nuevo->sig != NULL) {
         return;
     }
 
-    nuevo->sig = NULL;
+    for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
+        if (rec == nuevo ||
+            (rec->dato != NULL && rec->dato->reservador != NULL &&
+             rec->dato->reservador->rut == nuevo->dato->reservador->rut)) {
+            return;
+        }
+    }
 
-    /* caso 1: cola vacia, el nuevo nodo queda como head y tail */
-    if (cola->head == NULL) {
-        cola->head = nuevo;
-        cola->tail = nuevo;
+    /* caso 1: lista vacia, el nuevo nodo queda como head */
+    if (libro->headReserva == NULL) {
+        libro->headReserva = nuevo;
     }
     /* caso 2: reserva normal, se agrega al final */
     else if (nuevo->dato->tipoPase != 4) {
-        cola->tail->sig = nuevo;
-        cola->tail = nuevo;
+        rec = libro->headReserva;
+        while (rec->sig != NULL) {
+            rec = rec->sig;
+        }
+        rec->sig = nuevo;
     }
     /* caso 3: prioritario y el primero es normal, pasa a ser el nuevo head */
-    else if (cola->head->dato->tipoPase != 4) {
-        nuevo->sig = cola->head;
-        cola->head = nuevo;
+    else if (libro->headReserva->dato->tipoPase != 4) {
+        nuevo->sig = libro->headReserva;
+        libro->headReserva = nuevo;
     }
     /* caso 4: se inserta despues del ultimo prioritario */
     else {
-        rec = cola->head;
+        rec = libro->headReserva;
         while (rec->sig != NULL && rec->sig->dato->tipoPase == 4) {
             rec = rec->sig;
         }
 
         nuevo->sig = rec->sig;
         rec->sig = nuevo;
-        if (nuevo->sig == NULL) {
-            cola->tail = nuevo;
-        }
     }
-
-    cola->cantidad++;
 }
 
 /*
 -atiende al primero de la cola: lo desengancha y lo retorna
--si la cola esta vacia o es NULL, retorna NULL
--si la cola queda vacia, tail tambien pasa a NULL
+-si el libro es NULL o no tiene reservas, retorna NULL
 -quien llama debe liberar el nodo y la reserva cuando termine de usarlos
 */
-struct NodoReserva *desencolar(struct ColaReservas *cola) {
+struct NodoReserva *desencolar(struct Libro *libro) {
     struct NodoReserva *aux;
 
-    if (cola == NULL || cola->head == NULL) {
+    if (libro == NULL || libro->headReserva == NULL) {
         return NULL;
     }
 
     /* se guarda el primero y se mueve head al nodo siguiente */
-    aux = cola->head;
-    cola->head = aux->sig;
-    if (cola->head == NULL) {
-        cola->tail = NULL;
-    }
+    aux = libro->headReserva;
+    libro->headReserva = aux->sig;
 
     aux->sig = NULL;
-    cola->cantidad--;
     return aux;
 }
 
 /*
 -retorna cuantas personas esperan en la cola
--si la cola es NULL retorna 0
+-si el libro es NULL retorna 0
 */
-int cantidadEnEspera(struct ColaReservas *cola) {
-    return cola == NULL ? 0 : cola->cantidad;
+int cantidadEnEspera(struct Libro *libro) {
+    struct NodoReserva *rec;
+    int cantidad = 0;
+
+    if (libro == NULL) {
+        return 0;
+    }
+
+    for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
+        cantidad++;
+    }
+
+    return cantidad;
 }
 
 /*
 -muestra las reservas en orden de atencion
 -imprime posicion, nombre del cliente y si es prioritaria
--si la cola esta vacia o es NULL, informa que no hay clientes esperando
+-si el libro no tiene reservas, informa que no hay clientes esperando
 */
-void mostrarCola(struct ColaReservas *cola) {
+void mostrarCola(struct Libro *libro) {
     struct NodoReserva *rec;
     int pos = 1;
 
-    if (cola == NULL || cola->head == NULL) {
+    if (libro == NULL || libro->headReserva == NULL) {
         printf("No hay clientes en lista de espera\n");
         return;
     }
 
-    for (rec = cola->head; rec != NULL; rec = rec->sig) {
+    for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         printf("%d) %s", pos, rec->dato->reservador->nombre);
         if (rec->dato->tipoPase == 4) {
             printf(" (prioritario)");
@@ -174,25 +198,81 @@ void mostrarCola(struct ColaReservas *cola) {
 }
 
 /*
--libera todos los nodos de la cola y sus reservas
--NO libera a los clientes, pertenecen a la lista de clientes
--si la cola es NULL, no realiza cambios
--al final libera la cola misma
+-busca la reserva de un cliente en el libro por su rut
+-retorna el nodo si lo encuentra, o NULL si no esta
 */
-void liberarCola(struct ColaReservas *cola) {
+struct NodoReserva *buscarReserva(struct Libro *libro, int rut) {
     struct NodoReserva *rec;
 
-    if (cola == NULL) {
+    if (libro == NULL) {
+        return NULL;
+    }
+
+    for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
+        if (rec->dato != NULL && rec->dato->reservador != NULL &&
+            rec->dato->reservador->rut == rut) {
+            return rec;
+        }
+    }
+
+    return NULL;
+}
+
+/*
+-elimina de la lista del libro la reserva de un cliente, este donde este
+-libera el nodo y la reserva, pero NO al cliente
+-retorna 1 si la elimino, 0 si no estaba o el libro es NULL
+*/
+int eliminarReserva(struct Libro *libro, int rut) {
+    struct NodoReserva *rec;
+    struct NodoReserva *ant = NULL;
+
+    if (libro == NULL) {
+        return 0;
+    }
+
+    rec = libro->headReserva;
+    while (rec != NULL &&
+           (rec->dato == NULL || rec->dato->reservador == NULL ||
+            rec->dato->reservador->rut != rut)) {
+        ant = rec;
+        rec = rec->sig;
+    }
+
+    if (rec == NULL) {
+        return 0;
+    }
+
+    if (ant == NULL) {
+        libro->headReserva = rec->sig;
+    } else {
+        ant->sig = rec->sig;
+    }
+
+    free(rec->dato);
+    free(rec);
+    return 1;
+}
+
+/*
+-deja vacia la lista del libro liberando todos sus nodos y reservas
+-el libro queda disponible para recibir nuevas reservas
+*/
+void vaciarCola(struct Libro *libro) {
+    struct NodoReserva *rec;
+    struct NodoReserva *sig;
+
+    if (libro == NULL) {
         return;
     }
 
-    rec = cola->head;
+    rec = libro->headReserva;
     while (rec != NULL) {
-        struct NodoReserva *sig = rec->sig;
+        sig = rec->sig;
         free(rec->dato);
         free(rec);
         rec = sig;
     }
 
-    free(cola);
+    libro->headReserva = NULL;
 }
