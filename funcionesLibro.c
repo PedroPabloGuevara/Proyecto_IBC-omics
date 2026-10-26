@@ -1,3 +1,8 @@
+#include "funcionesLibro.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
 /*
 -inserta un nodo de libro en el arbol binario de busqueda, ordenado por codigo
 -los codigos menores van a la izquierda y los mayores a la derecha
@@ -29,6 +34,7 @@ int insertarLibro(struct NodoLibro **raiz, struct NodoLibro *nuevo) {
 -se usa en el menu antes de crear un libro, para no pedir datos de mas
 -retorna 1 si el codigo existe, 0 si no existe
 */
+
 int existeLibro(struct NodoLibro *raiz, int codigo){
     return buscarLibro(raiz, codigo) != NULL ;
 }
@@ -42,7 +48,7 @@ int contarLibros(struct NodoLibro *raiz) {
     if (raiz == NULL) {
         return 0 ; /*no hay libros en este subarbol*/
     }
-    
+
     /*cuenta este libro y los de los subarboles izquierdo y derecho*/
     return 1 + contarLibros(raiz->izq) + contarLibros(raiz->der) ;
 }
@@ -53,6 +59,7 @@ int contarLibros(struct NodoLibro *raiz) {
 -primero el nodo actual, luego el subarbol izquierdo y luego el derecho
 -solo recibe la raiz, no modifica el arbol por el puntero, por eso no es doble puntero
 */
+
 void mostrarLibrosPreorden(struct NodoLibro *raiz) {
 
     /*caso base: arbol vacio, no hay nada que mostrar*/
@@ -61,8 +68,35 @@ void mostrarLibrosPreorden(struct NodoLibro *raiz) {
     }
 
     printf("Codigo: %d, Nombre: %s\n", raiz->dato->codigo, raiz->dato->nombre) ;
-    listarLibrosPreorden(raiz->izq) ;
-    listarLibrosPreorden(raiz->der) ;
+    mostrarLibrosPreorden(raiz->izq) ;
+    mostrarLibrosPreorden(raiz->der) ;
+}
+
+/*
+-modifica el precio de un libro existente
+-el codigo no se modifica porque es la llave del arbol: cambiarlo dejaria al libro en un lugar incorrecto
+-los ejemplares no se modifican aqui, cambian con venderEjemplar y recibirDespacho
+-no acepta precios negativos
+-recibe la raiz del arbol, el codigo del libro y el precio nuevo
+-retorna 1 si se modifico, 0 si no existe el libro o el precio es invalido
+*/
+
+int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio) {
+
+    struct NodoLibro *nodo ;
+    nodo = buscarLibro(raiz, codigo) ;
+
+    if (nodo == NULL) {
+        return 0 ; /*no se encontro el libro*/
+    }
+
+    if (nuevoPrecio < 0) {
+        return 0 ; /*precio invalido*/
+    }
+
+    nodo->dato->precio = nuevoPrecio ;
+
+    return 1 ; /*se modifico el precio*/
 }
 
 /*
@@ -134,6 +168,51 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
     return 1 ; /*despacho registrado*/
 }
 
+/*
+-marca un libro como descatalogado (4): la editorial no lo reimprime
+-el nodo NO se borra del arbol, porque el libro sigue existiendo en la tienda y su informacion se conserva
+-despues de esto, venderEjemplar y recibirDespacho ya no operan sobre ese libro
+-recibe la raiz del arbol y el codigo del libro
+-retorna 1 si se marco como descatalogado, 0 si no existe un libro con ese codigo
+*/
+
+int descatalogarLibro(struct NodoLibro *raiz, int codigo) {
+
+    struct NodoLibro *nodo ;
+    nodo = buscarLibro(raiz, codigo) ;
+
+    if (nodo == NULL) {
+        return 0 ; /*no se encontro el libro*/
+    }
+
+    nodo->dato->disponibilidad = 4 ; /*descatalogado (4)*/
+
+    return 1 ; /*libro descatalogado*/
+}
+
+/*
+-libera toda la memoria dinamica de un libro
+-primero libera los 4 textos y al final el struct, porque si se libera el struct antes ya no se puede acceder a sus textos
+-NO libera el nodo del arbol: eso lo hace eliminarLibro
+-PENDIENTE: cuando exista la cola de reservas, agregar aqui liberarCola(libro->cola) antes del free del libro
+*/
+
+void liberarLibro(struct Libro *libro) {
+
+    /*si no hay libro, no hay nada que liberar*/
+    if (libro == NULL) {
+        return ;
+    }
+
+    free(libro->nombre) ;
+    free(libro->publicacion) ;
+    free(libro->genero) ;
+    free(libro->fechaPublicacion) ;
+
+    /*PENDIENTE: liberar la cola de reservas aqui*/
+
+    free(libro) ; /*siempre al final*/
+}
 
 /*
 -elimina un libro del arbol segun su codigo y libera su memoria

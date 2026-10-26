@@ -1,4 +1,9 @@
 #define MAXPASES 50
+
+#include "estructuras.h"
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 struct Cliente *crearCliente(char *nombre, int rut)
