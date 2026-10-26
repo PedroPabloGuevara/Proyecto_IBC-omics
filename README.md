@@ -128,7 +128,6 @@ Estas funciones todavia no se invocan desde `main.c`. Las estructuras de pases, 
 | `estructuras.h` | Definiciones compartidas de las estructuras de datos. |
 | `structibros.c` | Creacion, busqueda y obtencion del menor nodo del arbol de libros. |
 | `funcionesLibro.c` | Operaciones sobre el arbol binario de busqueda de libros. |
-| `funcionesLibro.h` | Declaraciones publicas de las funciones de libros. |
 | `clientes.c` | Operaciones sobre clientes y su lista circular. |
 | `CrearSalas.c` | Creacion e insercion de salas tematicas. |
 

@@ -1,7 +1,10 @@
-#include "funcionesLibro.h"
+#include "estructuras.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+
+struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo);
+struct NodoLibro *menorNodo(struct NodoLibro *raiz);
 
 /*
 -inserta un nodo de libro en el arbol binario de busqueda, ordenado por codigo
