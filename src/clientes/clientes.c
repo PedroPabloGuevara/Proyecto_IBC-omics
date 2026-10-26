@@ -1,6 +1,5 @@
-#define MAXPASES 50
-
-#include "../../include/estructuras.h"
+#include "../../include/clientes.h"
+#include "../../include/pases.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,14 +9,31 @@ struct Cliente *crearCliente(char *nombre, int rut)
 {
     struct Cliente *nuevo;
     int i, tam;
-    nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
 
-    tam=strlen(nombre);/*demas*/
-    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));/*modificar*/
+    if (nombre == NULL) {
+        return NULL;
+    }
+
+    nuevo = malloc(sizeof(*nuevo));
+    if (nuevo == NULL) {
+        return NULL;
+    }
+
+    tam = strlen(nombre);
+    nuevo->nombre = malloc((tam + 1) * sizeof(char));
+    if (nuevo->nombre == NULL) {
+        free(nuevo);
+        return NULL;
+    }
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
-    nuevo->pases=((struct Pase **)malloc(MAXPASES*sizeof(struct Pase *))); /* arr pases */
+    nuevo->pases = malloc(MAXPASES * sizeof(*nuevo->pases));
+    if (nuevo->pases == NULL) {
+        free(nuevo->nombre);
+        free(nuevo);
+        return NULL;
+    }
     for(i=0; i<MAXPASES; i++)
     {
         nuevo->pases[i]=NULL;
@@ -31,7 +47,14 @@ struct NodoCliente *crearNodoCliente(struct Cliente *dato) /* para meter en list
 {
     struct NodoCliente *nuevo;
 
-    nuevo=((struct NodoCliente*)malloc(sizeof(struct NodoCliente)));
+    if (dato == NULL) {
+        return NULL;
+    }
+
+    nuevo = malloc(sizeof(*nuevo));
+    if (nuevo == NULL) {
+        return NULL;
+    }
     nuevo->dato=dato;
     nuevo->sig=NULL;
 
@@ -57,6 +80,10 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
 {
     struct NodoCliente *rec;
 
+    if (head == NULL || nuevo == NULL) {
+        return;
+    }
+
     if(*head==NULL)
     {
         *head=nuevo;
@@ -76,18 +103,39 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
 
 int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 1 si lo agrego, 0 si el rut ya existia */
 {
+    struct Cliente *cliente;
+    struct NodoCliente *nodo;
+
+    if (head == NULL || nombre == NULL) {
+        return 0;
+    }
+
     if (buscarCliente(*head, rut)!=NULL) {
         return 0;
     }
-    enlazarCliente(head,crearNodoCliente(crearCliente(nombre, rut)));
+
+    cliente = crearCliente(nombre, rut);
+    if (cliente == NULL) {
+        return 0;
+    }
+
+    nodo = crearNodoCliente(cliente);
+    if (nodo == NULL) {
+        free(cliente->nombre);
+        free(cliente->pases);
+        free(cliente);
+        return 0;
+    }
+
+    enlazarCliente(head, nodo);
     return 1;
 }
 /*tiene anterior era circular simple*/
 int eliminarCliente(struct NodoCliente **head, int rut){
-    
     struct NodoCliente *act, *ant; /* actual y anterior */
+    int i;
 
-    if(*head==NULL){
+    if(head == NULL || *head==NULL){
         return 0;
     }
     ant=*head;
@@ -123,13 +171,28 @@ int eliminarCliente(struct NodoCliente **head, int rut){
         }
     }
 
+    if (act->dato->pases != NULL) {
+        for (i = 0; i < MAXPASES; i++) {
+            liberarPase(act->dato->pases[i]);
+        }
+    }
+
+    free(act->dato->nombre);
+    free(act->dato->pases);
+    free(act->dato);
+    free(act);
     return 1;
 }
 
-int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) /* 1 : se modifico, 0: no existe, -1: rut ya existe */
+int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) /* 1: modificado, 0: no encontrado o nombre invalido, -1: RUT duplicado, -2: memoria insuficiente */
 {
     struct NodoCliente *nodo;
     int tam;
+    char *copia;
+
+    if (nuevoNombre == NULL) {
+        return 0;
+    }
 
     nodo=buscarCliente(head, rut);
     if(nodo==NULL)
@@ -143,9 +206,14 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
     }
 
     /* reservar memoria para nombre y copiar */
-    tam=strlen(nuevoNombre);
-    nodo->dato->nombre=((char *)malloc((tam+1)*sizeof(char)));
-    strcpy(nodo->dato->nombre, nuevoNombre);
+    tam = strlen(nuevoNombre);
+    copia = malloc((tam + 1) * sizeof(char));
+    if (copia == NULL) {
+        return -2;
+    }
+    strcpy(copia, nuevoNombre);
+    free(nodo->dato->nombre);
+    nodo->dato->nombre = copia;
     nodo->dato->rut=nuevoRut;
 
     return 1;

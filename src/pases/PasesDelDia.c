@@ -1,5 +1,7 @@
 #include "../../include/pases.h"
+#include "../../include/clientes.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,6 +45,16 @@ struct Pase *crearPase(int tipoPase, int codigo, int valor, int estado,
     return nuevo;
 }
 
+void liberarPase(struct Pase *pase) {
+    if (pase == NULL) {
+        return;
+    }
+
+    free(pase->fecha);
+    free(pase->hora);
+    free(pase);
+}
+
 /*
 -crea un nodo que guarda un pase
 -retorna NULL si el pase es NULL o falla la reserva de memoria
@@ -73,6 +85,7 @@ struct pasesDelDia *crearPasesDelDia(void) {
 
     if (nueva != NULL) {
         nueva->head = NULL;
+        nueva->ultimoCodigoEmitido = 0;
     }
     return nueva;
 }
@@ -109,7 +122,9 @@ int agregarPase(struct pasesDelDia *lista, struct Pase *pase) {
 
     if (lista == NULL || pase == NULL || pase->tipoPase < 1 ||
         pase->tipoPase > 4 || pase->estado < 1 || pase->estado > 4 ||
-        pase->valor < 0 || buscarPase(lista, pase->codigo) != NULL) {
+        pase->valor < 0 || buscarPase(lista, pase->codigo) != NULL ||
+        (lista->ultimoCodigoEmitido != 0 &&
+         pase->codigo <= lista->ultimoCodigoEmitido)) {
         return 0;
     }
 
@@ -238,4 +253,146 @@ int contarPasesPorEstado(struct pasesDelDia *lista, int estado) {
         rec = rec->sig;
     }
     return contador;
+}
+
+int paseValidoHoy(struct Pase *pase, char *fecha) {
+    return pase != NULL && pase->fecha != NULL && fecha != NULL &&
+           strcmp(pase->fecha, fecha) == 0;
+}
+
+int limpiarPasesVencidos(struct Cliente *cliente, char *fecha) {
+    int i;
+    int cantidad = 0;
+
+    if (cliente == NULL || cliente->pases == NULL || fecha == NULL) {
+        return -1;
+    }
+
+    for (i = 0; i < MAXPASES; i++) {
+        struct Pase *pase = cliente->pases[i];
+
+        if (pase != NULL && paseValidoHoy(pase, fecha)) {
+            cliente->pases[cantidad] = pase;
+            cantidad++;
+        } else {
+            liberarPase(pase);
+        }
+    }
+
+    for (i = cantidad; i < MAXPASES; i++) {
+        cliente->pases[i] = NULL;
+    }
+
+    cliente->plibrepases = cantidad;
+    return cantidad;
+}
+
+int mayorCodigoEmitido(struct Tienda *tienda) {
+    struct NodoPase *nodoPase;
+    struct NodoCliente *nodoCliente;
+    int mayor;
+    int i;
+
+    mayor = tienda->filaPasesDeldia->ultimoCodigoEmitido;
+    for (nodoPase = tienda->filaPasesDeldia->head;
+         nodoPase != NULL; nodoPase = nodoPase->sig) {
+        if (nodoPase->paseVigente->codigo > mayor) {
+            mayor = nodoPase->paseVigente->codigo;
+        }
+    }
+
+    nodoCliente = tienda->headClientes;
+    if (nodoCliente != NULL) {
+        do {
+            if (nodoCliente->dato != NULL &&
+                nodoCliente->dato->pases != NULL) {
+                for (i = 0; i < MAXPASES; i++) {
+                    struct Pase *pase = nodoCliente->dato->pases[i];
+
+                    if (pase != NULL && pase->codigo > mayor) {
+                        mayor = pase->codigo;
+                    }
+                }
+            }
+            nodoCliente = nodoCliente->sig;
+        } while (nodoCliente != tienda->headClientes);
+    }
+
+    return mayor;
+}
+
+int venderPasesDelDia(struct Tienda *tienda, int rut, int codigoTipo,
+                      int cantidad) {
+    struct NodoCliente *nodoCliente;
+    struct NodoPase *nodoModelo;
+    struct Pase *nuevos[MAXPASES];
+    struct Cliente *cliente;
+    struct Pase *modelo;
+    int cantidadActual;
+    int cantidadVenta;
+    int mayorCodigo;
+    int ingreso;
+    int i;
+
+    if (tienda == NULL || tienda->filaPasesDeldia == NULL ||
+        tienda->headClientes == NULL || tienda->fecha == NULL ||
+        cantidad <= 0 || tienda->recaudacionPasesDia < 0) {
+        return 0;
+    }
+
+    nodoCliente = buscarCliente(tienda->headClientes, rut);
+    nodoModelo = buscarPase(tienda->filaPasesDeldia, codigoTipo);
+    if (nodoCliente == NULL || nodoModelo == NULL) {
+        return 0;
+    }
+
+    cliente = nodoCliente->dato;
+    modelo = nodoModelo->paseVigente;
+    if (cliente->pases == NULL || modelo->estado != 1 || modelo->valor < 0 ||
+        modelo->hora == NULL) {
+        return 0;
+    }
+
+    cantidadActual = limpiarPasesVencidos(cliente, tienda->fecha);
+    if (cantidadActual < 0) {
+        return 0;
+    }
+
+    cantidadVenta = cantidad;
+    if (cantidadVenta > MAXPASES - cantidadActual) {
+        cantidadVenta = MAXPASES - cantidadActual;
+    }
+    if (cantidadVenta == 0 ||
+        (modelo->valor > 0 &&
+         cantidadVenta > (INT_MAX - tienda->recaudacionPasesDia) /
+                             modelo->valor)) {
+        return 0;
+    }
+
+    mayorCodigo = mayorCodigoEmitido(tienda);
+    if (mayorCodigo > INT_MAX - cantidadVenta) {
+        return 0;
+    }
+
+    for (i = 0; i < cantidadVenta; i++) {
+        nuevos[i] = crearPase(modelo->tipoPase, mayorCodigo + i + 1,
+                              modelo->valor, 1, tienda->fecha, modelo->hora);
+        if (nuevos[i] == NULL) {
+            while (i > 0) {
+                i--;
+                liberarPase(nuevos[i]);
+            }
+            return 0;
+        }
+    }
+
+    ingreso = cantidadVenta * modelo->valor;
+    for (i = 0; i < cantidadVenta; i++) {
+        cliente->pases[cantidadActual + i] = nuevos[i];
+    }
+    cliente->plibrepases = cantidadActual + cantidadVenta;
+    tienda->filaPasesDeldia->ultimoCodigoEmitido =
+        mayorCodigo + cantidadVenta;
+    tienda->recaudacionPasesDia += ingreso;
+    return cantidadVenta;
 }
