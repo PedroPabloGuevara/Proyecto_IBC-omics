@@ -59,13 +59,13 @@ cd /c/dev/Proyecto_IBC-omics
 Para revisar errores de sintaxis sin generar un ejecutable:
 
 ```bash
-gcc -std=c11 -Wall -Wextra -fsyntax-only main.c clientes.c CrearSalas.c structibros.c funcionesLibro.c cola.c
+gcc -std=c11 -Wall -Wextra -fsyntax-only main.c clientes.c CrearSalas.c arbol-binario/structibros.c arbol-binario/funcionesLibro.c cola.c
 ```
 
 Para compilar y crear `app.exe`:
 
 ```bash
-gcc -std=c11 -Wall -Wextra -o app.exe main.c clientes.c CrearSalas.c structibros.c funcionesLibro.c cola.c
+gcc -std=c11 -Wall -Wextra -o app.exe main.c clientes.c CrearSalas.c arbol-binario/structibros.c arbol-binario/funcionesLibro.c cola.c
 ```
 
 Las opciones `-std=c11`, `-Wall` y `-Wextra` seleccionan el estandar C11 y habilitan advertencias utiles durante el desarrollo.
@@ -101,7 +101,7 @@ Las estructuras compartidas se declaran en `estructuras.h`:
 
 ### Libros
 
-`structibros.c` y `funcionesLibro.c` implementan la creacion de libros y nodos, y un **arbol binario de busqueda (ABB)** ordenado por codigo:
+`arbol-binario/structibros.c` y `arbol-binario/funcionesLibro.c` implementan la creacion de libros y nodos, y un **arbol binario de busqueda (ABB)** ordenado por codigo:
 
 - Insercion recursiva; no acepta codigos duplicados.
 - Busqueda por codigo, existencia y conteo de libros.
@@ -126,8 +126,8 @@ Estas funciones todavia no se invocan desde `main.c`. Las estructuras de pases, 
 | --- | --- |
 | `main.c` | Punto de entrada actual; imprime un mensaje de inicio. |
 | `estructuras.h` | Definiciones compartidas de las estructuras de datos. |
-| `structibros.c` | Creacion, busqueda y obtencion del menor nodo del arbol de libros. |
-| `funcionesLibro.c` | Operaciones sobre el arbol binario de busqueda de libros. |
+| `arbol-binario/structibros.c` | Creacion, busqueda y obtencion del menor nodo del arbol de libros. |
+| `arbol-binario/funcionesLibro.c` | Operaciones sobre el arbol binario de busqueda de libros. |
 | `cola.c` y `cola.h` | Operaciones y prototipos publicos de la cola de reservas. |
 | `clientes.c` | Operaciones sobre clientes y su lista circular. |
 | `CrearSalas.c` | Creacion e insercion de salas tematicas. |

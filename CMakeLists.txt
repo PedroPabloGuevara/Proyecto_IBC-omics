@@ -8,7 +8,7 @@ add_executable(app
     main.c
     clientes.c
     CrearSalas.c
-    structibros.c
-    funcionesLibro.c
+    arbol-binario/structibros.c
+    arbol-binario/funcionesLibro.c
     cola.c
 )
