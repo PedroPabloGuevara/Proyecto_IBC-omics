@@ -5,43 +5,55 @@
 - Estructuras de datos para clientes, pases diarios, reservas de libros, salas y tienda.
 - Registro de clientes y almacenamiento de hasta 50 pases por cliente.
 - Creacion, venta, consulta y administracion de pases diarios, con codigo individual,
-  fecha, hora y recaudacion.
+  fecha, hora y recaudacion acumulada en `Tienda.recaudacion`.
+- Modulo de pases separado entre administracion (`src/pases/pasesDelDia.c`) y
+  flujo de venta (`src/pases/ventasPases.c`).
 - Reservas de libros vinculadas a cada libro, con prioridad para reservas de tipo 4.
 - Gestion de libros en arbol binario: busqueda, ventas por cantidad, despacho,
-  descatalogacion y recaudacion diaria.
-- Fila de ingreso separada de las colas de reservas. Cada solicitud conserva la
-  persona, el pase presentado y la sala preferida.
-- Prioridad estable para los pases de tipo 4 y orden de llegada para los demas.
+  descatalogacion y actualizacion de la recaudacion de la tienda.
+- Modulo de libros separado entre operaciones del arbol (`operacionesArbol.c`), creacion y
+  liberacion de libros (`libros.c`) y ventas/recaudacion (`ventasLibros.c`).
+- Fila de ingreso de pases basada en `Fila` y `NodoPase`, separada de las reservas
+  de libros; los pases tipo 4 tienen prioridad estable y los demas conservan FIFO.
 - Validacion de fecha `DD/MM/AAAA`, hora `HH:MM`, horario del pase y horario de tienda.
-- Control de capacidad de la sala principal mas la suma de las capacidades tematicas,
-  admision, espera cuando no hay espacio, registro de salida, reingreso con el mismo
-  pase y cambio de sala sujeto a capacidad.
-- Modulos de fila divididos por responsabilidad en `src/filas/`.
+- Al admitir un pase, su estado cambia a utilizado. El modelo compartido no registra
+  ocupacion actual, salidas, reingresos ni asignacion de personas a salas.
+- Modulo de entrada agrupado en `src/entrada/`: fila, gestion, control y validacion
+  (`validacionEntrada.c`).
+
+## Aclaracion sobre pases del dia
+
+- En la implementacion actual, `Tienda.filaPasesDeldia` funciona como catalogo
+  de pases modelo disponibles para vender: `ventasPases.c` busca ahi el tipo,
+  y crea pases individuales que guarda en el arreglo `Cliente.pases`.
+- Al procesar un ingreso, `gestionEntrada.c` cambia el estado del pase a
+  utilizado y quita de la fila el nodo que esperaba. Actualmente no agrega ese
+  pase a `filaPasesDeldia`, ni conserva un registro diario de ingresos unicos.
+- La regla de funcionamiento solicitada es distinta: `pasesDelDia` debe
+  representar los pases que ingresaron al menos una vez durante el dia. El
+  primer ingreso registra el pase y cuenta una entrada; una salida no lo quita,
+  y un reingreso con el mismo pase no debe registrarlo ni contarlo nuevamente.
+- Esta regla todavia no esta implementada. Antes de cambiar el codigo hay que
+  separar claramente el catalogo de tipos vendibles del registro de pases que
+  ya ingresaron, y definir como validar reingresos con el modelo de structs
+  compartido.
 
 ## Pendiente antes de considerar completa la aplicacion
 
 - Conectar las operaciones de clientes, pases, libros, salas y fila desde `main.c`.
+- Alinear el uso de `pasesDelDia` con la regla acordada para registrar una sola
+  vez cada pase que entra, sin contar de nuevo los reingresos.
 - Incorporar persistencia de datos e interfaz de uso; actualmente `main.c` solo
   imprime el mensaje de inicio.
-- Definir como se conserva la ocupacion cuando se modifica o elimina una sala.
 - Evitar que eliminar un cliente o limpiar pases vencidos libere objetos que aun
-  estan referenciados por solicitudes en espera, ocupaciones o registros de uso.
-- Sincronizar cambios de RUT con el historial de uso del pase, o impedir modificarlo
-  mientras existan referencias activas.
+  estan referenciados por reservas o solicitudes en espera.
 - Corregir `eliminarPase`: actualmente quita el pase de la lista, pero no libera ni
   devuelve el pase separado.
-- Validar que el aforo de las salas sea positivo al crearlas o modificarlas.
-- Definir y mostrar explicitamente el estado de un pase ya utilizado; el control
-  actual registra su uso internamente, pero no cambia el campo `estado` del pase.
-- Evitar configuraciones repetidas del control de acceso que reemplacen estructuras
-  existentes y pierdan la ocupacion o las solicitudes activas.
-- Agregar pruebas automatizadas permanentes para ventas, reservas, fila, aforos,
-  pases, fechas y horarios. La compilacion C89 por si sola no sustituye esas pruebas.
+- Agregar pruebas automatizadas permanentes para ventas, reservas, fila, pases,
+  fechas y horarios.
 
 ## Verificacion realizada
 
-- Compilacion y enlace de todos los archivos C con `-std=c89 -Wall -Wextra -Werror
-  -pedantic`.
-- Pruebas puntuales ejecutadas durante el desarrollo para prioridad de fila,
-  capacidades, fechas y horas, salidas, reingresos y cambios de sala. Estas pruebas
-  se ejecutaron como programas temporales y aun no forman parte del repositorio.
+- Compilacion sintactica de todos los archivos C con `-std=c99 -Wall -Wextra`.
+- Prueba temporal de ingreso con `NodoPase`, prioridad/estado del pase y recaudacion
+  compartida de ventas de libros y pases. La prueba aun no forma parte del repositorio.

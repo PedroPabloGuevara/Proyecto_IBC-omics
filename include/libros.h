@@ -14,8 +14,10 @@ int existeLibro(struct NodoLibro *raiz, int codigo);
 int contarLibros(struct NodoLibro *raiz);
 void mostrarLibrosPreorden(struct NodoLibro *raiz);
 int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio);
-int venderEjemplar(struct NodoLibro *raiz, int codigo);
-int venderEjemplares(struct NodoLibro *raiz, int codigo, int rut, int cantidad);
+/* Las ventas reciben la tienda para actualizar su recaudacion compartida. */
+int venderEjemplar(struct Tienda *tienda, struct NodoLibro *raiz, int codigo);
+int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz, int codigo,
+                     int rut, int cantidad);
 int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad);
 int calcularRecaudacionDiaria(struct Tienda *tienda);
 void reiniciarRecaudacionDiaria(struct Tienda *tienda);

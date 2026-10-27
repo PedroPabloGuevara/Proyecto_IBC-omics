@@ -43,9 +43,10 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
     nuevoLibro->genero = NULL;
     nuevoLibro->fechaPublicacion = NULL;
     nuevoLibro->deColeccion = deColeccion;
+    /* Las reservas pertenecen al libro y comienzan como una lista vacia. */
     nuevoLibro->headReserva = NULL;
-    nuevoLibro->recaudacionDia = 0;
 
+    /* Copia cada texto para que el libro sea propietario de su memoria. */
     nuevoLibro->nombre = copiarTexto(nombre);
     nuevoLibro->publicacion = copiarTexto(publicacion);
     nuevoLibro->genero = copiarTexto(genero);

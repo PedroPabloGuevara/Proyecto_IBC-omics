@@ -1,7 +1,6 @@
 #include "../../include/libros.h"
 #include "../../include/reservas.h"
 
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,82 +9,6 @@ struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
         raiz = raiz->izq;
     }
     return raiz;
-}
-
-int sumarRecaudacionArbol(struct NodoLibro *raiz, int *total) {
-    int recaudacionLibro;
-
-    if (raiz == NULL) {
-        return 1;
-    }
-
-    recaudacionLibro = raiz->dato->recaudacionDia;
-    if (recaudacionLibro < 0 || *total > INT_MAX - recaudacionLibro) {
-        return 0;
-    }
-
-    *total += recaudacionLibro;
-    return sumarRecaudacionArbol(raiz->izq, total) &&
-           sumarRecaudacionArbol(raiz->der, total);
-}
-
-void reiniciarRecaudacionArbol(struct NodoLibro *raiz) {
-    if (raiz == NULL) {
-        return;
-    }
-
-    raiz->dato->recaudacionDia = 0;
-    reiniciarRecaudacionArbol(raiz->izq);
-    reiniciarRecaudacionArbol(raiz->der);
-}
-
-void reiniciarRecaudacionSalas(struct NodoSala *sala) {
-    if (sala == NULL) {
-        return;
-    }
-
-    reiniciarRecaudacionArbol(sala->dato->raiz);
-    reiniciarRecaudacionSalas(sala->sig);
-}
-
-int sumarRecaudacionSalas(struct NodoSala *sala, int *total) {
-    if (sala == NULL) {
-        return 1;
-    }
-
-    return sumarRecaudacionArbol(sala->dato->raiz, total) &&
-           sumarRecaudacionSalas(sala->sig, total);
-}
-
-int calcularRecaudacionDiaria(struct Tienda *tienda) {
-    int recaudacionLibros;
-
-    if (tienda == NULL) {
-        return 0;
-    }
-
-    recaudacionLibros = 0;
-    if (tienda->recaudacionPasesDia < 0 ||
-        !sumarRecaudacionSalas(tienda->headSalas, &recaudacionLibros) ||
-        recaudacionLibros > INT_MAX - tienda->recaudacionPasesDia) {
-        return -1;
-    }
-
-    tienda->recaudacionLibrosDia = recaudacionLibros;
-    tienda->recaudacion =
-        tienda->recaudacionLibrosDia + tienda->recaudacionPasesDia;
-    return tienda->recaudacion;
-}
-
-void reiniciarRecaudacionDiaria(struct Tienda *tienda) {
-    if (tienda == NULL) {
-        return;
-    }
-
-    reiniciarRecaudacionSalas(tienda->headSalas);
-    tienda->recaudacionLibrosDia = 0;
-    tienda->recaudacionPasesDia = 0;
-    tienda->recaudacion = 0;
 }
 
 /*
@@ -186,78 +109,6 @@ int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio) {
     nodo->dato->precio = nuevoPrecio ;
 
     return 1 ; /*se modifico el precio*/
-}
-
-int registrarVenta(struct Libro *libro, int cantidad, int rut,
-                   int tieneComprador) {
-    int unidadesVendidas;
-    int ingreso;
-
-    if (libro == NULL || cantidad <= 0 || libro->disponibilidad == 4 ||
-        libro->ejemplaresDisponibles <= 0 || libro->precio < 0 ||
-        libro->recaudacionDia < 0) {
-        return 0;
-    }
-
-    unidadesVendidas = cantidad;
-    if (unidadesVendidas > libro->ejemplaresDisponibles) {
-        unidadesVendidas = libro->ejemplaresDisponibles;
-    }
-
-    if (libro->precio > 0 &&
-        unidadesVendidas > (INT_MAX - libro->recaudacionDia) / libro->precio) {
-        return 0;
-    }
-
-    ingreso = unidadesVendidas * libro->precio;
-    libro->ejemplaresDisponibles -= unidadesVendidas;
-    libro->recaudacionDia += ingreso;
-
-    if (tieneComprador) {
-        eliminarReserva(libro, rut);
-    }
-
-    if (libro->ejemplaresDisponibles == 0) {
-        libro->disponibilidad = 2;
-    }
-
-    return unidadesVendidas;
-}
-
-/*
--registra la venta de un ejemplar cuando no se necesita identificar al comprador
--no quita reservas de la lista porque no conoce el rut del cliente atendido
--retorna 1 si vendio, 0 si no habia stock o no se pudo vender
-*/
-int venderEjemplar(struct NodoLibro *raiz, int codigo) {
-    struct NodoLibro *nodo;
-
-    nodo = buscarLibro(raiz, codigo);
-    if (nodo == NULL) {
-        return 0;
-    }
-
-    return registrarVenta(nodo->dato, 1, 0, 0);
-}
-
-/*
--vende hasta la cantidad solicitada o el stock disponible, lo que sea menor
--retorna cuantas unidades vendio; retorna 0 si no se pudo vender
--si el cliente tenia una reserva, retira solo su reserva; las demas conservan su orden
-*/
-int venderEjemplares(struct NodoLibro *raiz, int codigo, int rut, int cantidad) {
-    struct NodoLibro *nodo;
-
-    if (cantidad <= 0) {
-        return 0;
-    }
-
-    nodo = buscarLibro(raiz, codigo);
-    if (nodo == NULL) {
-        return 0;
-    }
-
-    return registrarVenta(nodo->dato, cantidad, rut, 1);
 }
 
 /*
