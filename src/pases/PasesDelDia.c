@@ -322,9 +322,10 @@ int mayorCodigoEmitido(struct Tienda *tienda) {
 }
 
 /*
--valida la tienda, el cliente y el tipo de pase para preparar una venta
--limpia los pases vencidos y calcula la cantidad vendible, los codigos y los datos necesarios
--retorna 1 si la venta puede continuar o 0 si los datos, el espacio o los limites no lo permiten
+-prepara una venta de pases buscando al cliente y el pase que se usara como modelo
+-valida los datos, elimina pases vencidos y determina cuantos pases se pueden vender
+-entrega los datos calculados mediante sus parametros de salida
+-retorna 1 si la venta puede continuar o 0 si no cumple las condiciones necesarias
 */
 int prepararVentaPases(struct Tienda *tienda, int rut, int codigoTipo,
                        int cantidad, struct Cliente **cliente,
@@ -380,9 +381,10 @@ int prepararVentaPases(struct Tienda *tienda, int rut, int codigoTipo,
 }
 
 /*
--crea y asigna los pases vendidos al cliente y actualiza codigos e ingresos de la tienda
--recibe los datos calculados previamente por prepararVentaPases
--retorna la cantidad registrada o 0 si no se pudieron crear todos los pases
+-completa la venta creando los nuevos pases y guardandolos en el cliente
+-actualiza el ultimo codigo emitido y la recaudacion de la tienda
+-recibe los datos de venta validados previamente por prepararVentaPases
+-retorna la cantidad de pases registrados o 0 si falla la creacion de alguno
 */
 int registrarVentaPases(
     struct Tienda *tienda, struct Cliente *cliente, struct Pase *modelo,
@@ -419,10 +421,10 @@ int registrarVentaPases(
 }
 
 /*
--vende pases del dia al cliente indicado, usando como modelo el tipo de pase solicitado
--registra los nuevos pases en el cliente y actualiza los codigos emitidos y la recaudacion
--limita la compra al espacio disponible del cliente
--retorna la cantidad vendida o 0 si la venta no se pudo completar
+-realiza el proceso completo de venta de pases del dia para un cliente y tipo indicados
+-prepara la venta, limita la cantidad al espacio disponible y registra los pases
+-actualiza los codigos emitidos y la recaudacion al completar la venta
+-retorna la cantidad vendida o 0 si la venta no se puede completar
 */
 int venderPasesDelDia(struct Tienda *tienda, int rut, int codigoTipo,
                       int cantidad) {
