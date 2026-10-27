@@ -385,8 +385,8 @@ int prepararVentaPases(struct Tienda *tienda, int rut, int codigoTipo,
 }
 
 /*
--completa la venta creando los nuevos pases y guardandolos en el cliente
--actualiza el ultimo codigo emitido y la recaudacion de la tienda
+-primero crea los nuevos pases, despues registra la venta y por ultimo los enlaza al cliente
+-al registrar la venta actualiza el ultimo codigo emitido y la recaudacion de la tienda
 -recibe los datos de venta validados previamente por prepararVentaPases
 -retorna la cantidad de pases registrados o 0 si falla la creacion de alguno
 */
@@ -397,7 +397,7 @@ int registrarVentaPases(
     int ingreso;
     int i;
 
-    /* Crea todos los pases antes de registrar la venta o enlazarlos al cliente. */
+    /* Primero crea todos los pases; todavia no registra la venta ni los enlaza. */
     for (i = 0; i < cantidadVenta; i++) {
         nuevos[i] = crearPase(modelo->tipoPase, mayorCodigo + i + 1,
                               modelo->valor, 1, tienda->fecha, modelo->hora);
@@ -411,13 +411,13 @@ int registrarVentaPases(
         }
     }
 
-    /* Registra la venta actualizando codigos emitidos y recaudacion. */
+    /* Despues registra la venta actualizando codigos emitidos y recaudacion. */
     ingreso = cantidadVenta * modelo->valor;
     tienda->filaPasesDeldia->ultimoCodigoEmitido =
         mayorCodigo + cantidadVenta;
     tienda->recaudacionPasesDia += ingreso;
 
-    /* Enlaza los pases vendidos al cliente y actualiza la cantidad que posee. */
+    /* Por ultimo enlaza los pases vendidos al cliente y actualiza su cantidad. */
     for (i = 0; i < cantidadVenta; i++) {
         cliente->pases[cantidadActual + i] = nuevos[i];
     }
