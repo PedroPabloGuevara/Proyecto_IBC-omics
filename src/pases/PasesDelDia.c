@@ -419,7 +419,8 @@ int registrarVentaPases(
 }
 
 /*
--coordina la venta de pases de un tipo a un cliente identificado por rut
+-vende pases del dia al cliente indicado, usando como modelo el tipo de pase solicitado
+-registra los nuevos pases en el cliente y actualiza los codigos emitidos y la recaudacion
 -limita la compra al espacio disponible del cliente
 -retorna la cantidad vendida o 0 si la venta no se pudo completar
 */
