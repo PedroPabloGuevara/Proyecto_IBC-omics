@@ -334,18 +334,21 @@ int prepararVentaPases(struct Tienda *tienda, int rut, int codigoTipo,
     struct NodoCliente *nodoCliente;
     struct NodoPase *nodoModelo;
 
+    /* Comprueba que la tienda y la cantidad solicitada permitan iniciar la venta. */
     if (tienda == NULL || tienda->filaPasesDeldia == NULL ||
         tienda->headClientes == NULL || tienda->fecha == NULL ||
         cantidad <= 0 || tienda->recaudacionPasesDia < 0) {
         return 0;
     }
 
+    /* Busca al cliente comprador y el pase que servira de modelo. */
     nodoCliente = buscarCliente(tienda->headClientes, rut);
     nodoModelo = buscarPase(tienda->filaPasesDeldia, codigoTipo);
     if (nodoCliente == NULL || nodoModelo == NULL) {
         return 0;
     }
 
+    /* Valida que el cliente pueda guardar pases y que el modelo este disponible. */
     *cliente = nodoCliente->dato;
     *modelo = nodoModelo->paseVigente;
     if ((*cliente)->pases == NULL || (*modelo)->estado != 1 ||
@@ -359,11 +362,12 @@ int prepararVentaPases(struct Tienda *tienda, int rut, int codigoTipo,
         return 0;
     }
 
-    /* Limita la compra al espacio libre y valida que el ingreso no desborde. */
+    /* Limita la compra al espacio libre del cliente. */
     *cantidadVenta = cantidad;
     if (*cantidadVenta > MAXPASES - *cantidadActual) {
         *cantidadVenta = MAXPASES - *cantidadActual;
     }
+    /* Evita que la recaudacion supere el maximo representable por un int. */
     if (*cantidadVenta == 0 ||
         ((*modelo)->valor > 0 &&
          *cantidadVenta >
@@ -393,11 +397,12 @@ int registrarVentaPases(
     int ingreso;
     int i;
 
-    /* Crea todos los pases antes de cambiar el estado del cliente o la tienda. */
+    /* Crea todos los pases antes de registrar la venta o enlazarlos al cliente. */
     for (i = 0; i < cantidadVenta; i++) {
         nuevos[i] = crearPase(modelo->tipoPase, mayorCodigo + i + 1,
                               modelo->valor, 1, tienda->fecha, modelo->hora);
         if (nuevos[i] == NULL) {
+            /* Si falla una creacion, libera los pases creados y cancela la venta. */
             while (i > 0) {
                 i--;
                 liberarPase(nuevos[i]);
@@ -406,17 +411,18 @@ int registrarVentaPases(
         }
     }
 
-    /* Guarda los pases vendidos y actualiza el total de pases del cliente. */
+    /* Registra la venta actualizando codigos emitidos y recaudacion. */
     ingreso = cantidadVenta * modelo->valor;
+    tienda->filaPasesDeldia->ultimoCodigoEmitido =
+        mayorCodigo + cantidadVenta;
+    tienda->recaudacionPasesDia += ingreso;
+
+    /* Enlaza los pases vendidos al cliente y actualiza la cantidad que posee. */
     for (i = 0; i < cantidadVenta; i++) {
         cliente->pases[cantidadActual + i] = nuevos[i];
     }
     cliente->plibrepases = cantidadActual + cantidadVenta;
 
-    /* Registra los codigos emitidos y suma el ingreso de la venta. */
-    tienda->filaPasesDeldia->ultimoCodigoEmitido =
-        mayorCodigo + cantidadVenta;
-    tienda->recaudacionPasesDia += ingreso;
     return cantidadVenta;
 }
 
@@ -434,14 +440,14 @@ int venderPasesDelDia(struct Tienda *tienda, int rut, int codigoTipo,
     int cantidadVenta;
     int mayorCodigo;
 
-    /* Vende pases de un tipo a un cliente, limitando la compra a su espacio disponible. */
+    /* Valida y prepara la venta, calculando cuantos pases se pueden entregar. */
     if (!prepararVentaPases(tienda, rut, codigoTipo, cantidad, &cliente,
                             &modelo, &cantidadActual, &cantidadVenta,
                             &mayorCodigo)) {
         return 0;
     }
 
-    /* Retorna la cantidad vendida; si no se puede completar la venta, retorna 0. */
+    /* Crea los pases, registra la venta y luego los enlaza al cliente. */
     return registrarVentaPases(tienda, cliente, modelo, cantidadActual,
                                cantidadVenta, mayorCodigo);
 }
