@@ -22,8 +22,22 @@ int main() {
                 {
                     case 1:
                         /* code */
+                        crearfila
                         break;
-
+                    case 2:
+                        encolar;/*agreganodo*/
+                        break;
+                    case 3:
+                        desencolar;/*eliminar*/
+                        
+                        break;
+                    case 4:
+                        buscarEnFila;
+                        break;
+                    case 5:
+                        listar
+                            
+                        break;
                     default:
                         break;
                 }
@@ -152,8 +166,20 @@ int main() {
                 {
                     case 1:
                         /* code */
+                        crearreserva
                         break;
-
+                    case 2:
+                    nuevareservalibro
+                        break;
+                    case 3:
+                        mostrarcola   
+                        break;
+                    case 4:
+                        eliminar
+                        break;
+                    case 5:
+                        modificar
+                        break;
                     default:
                         break;
                 }
@@ -165,6 +191,26 @@ int main() {
                 break;
            case 6:
                 /*pasesDelDia*/
+            if(!tienda->PasesDelDia){
+                crearlistapasesdeldia;
+            }
+            switch(subopcion){
+                case 1:
+                    crearnuevopaseagregar;
+                    break;
+                case 2:
+                    buscarpase;
+                case 3:
+                    modificarPase;
+                    break;
+                case 4:
+                    eliminarPases;
+                    break;
+                case 5: 
+                    listarPase;
+                case default
+                    break;
+            }       
             case 0:
                 estadoTienda = 0;
                 break;
