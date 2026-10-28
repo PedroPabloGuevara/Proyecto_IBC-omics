@@ -21,7 +21,9 @@ int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz, int codigo,
 int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad);
 int calcularRecaudacionDiaria(struct Tienda *tienda);
 void reiniciarRecaudacionDiaria(struct Tienda *tienda);
-int descatalogarLibro(struct NodoLibro *raiz, int codigo);
+/* reservasCanceladas recibe cuantas reservas se vaciaron; puede ser NULL. */
+int descatalogarLibro(struct NodoLibro *raiz, int codigo,
+                      int *reservasCanceladas);
 void liberarLibro(struct Libro *libro);
 int eliminarLibro(struct NodoLibro **raiz, int codigo);
 

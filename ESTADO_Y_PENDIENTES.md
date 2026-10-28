@@ -7,9 +7,15 @@
 - Registro de pases externos asociados a clientes para validar su ingreso.
 - `Tienda.recaudacion` registra las ventas de libros; la aplicacion no vende
   pases ni suma dinero por pases.
-- Reservas solo para libros en preventa (disponibilidad 3), con prioridad para
-  reservas de tipo 4. Al llegar despacho, el libro queda disponible y la venta
-  atiende la cola: solo el primer reservador puede comprar su ejemplar reservado.
+- Reservas solo para libros en preventa (disponibilidad 3), con un pase activo
+  o utilizado que pertenezca al cliente; la prioridad se deriva del pase y no
+  de un tipo indicado externamente. Cada cliente puede reservar una unidad por
+  libro. Al llegar despacho, el libro queda disponible y la venta atiende la
+  cola: solo el primer reservador puede comprar su ejemplar reservado.
+- Validacion de coherencia entre disponibilidad y stock: disponibles requieren
+  stock, mientras agotados y preventa deben tener stock cero. Los libros
+  descatalogados no se venden; al descatalogar se cancelan sus reservas y se
+  puede obtener el numero cancelado mediante un parametro de salida opcional.
 - Gestion de libros en arbol binario: busqueda, ventas por cantidad, despacho,
   descatalogacion y actualizacion de la recaudacion de la tienda.
 - Modulo de libros separado entre operaciones del arbol (`operacionesArbol.c`), creacion y
@@ -71,6 +77,9 @@
   jornada de prueba; no reemplaza ni conecta el `main.c` de la aplicacion.
 - La suite cubre validacion de fechas/horas, limites y duplicados, prioridad y
   orden de fila, ingreso/reingreso, ventas y recaudacion, reservas solo en
-  preventa, prioridad de venta tras despacho, datos invalidos de libros,
+  preventa con pases asociados, rechazo de inserciones invalidas, prioridad de
+  venta tras despacho, casos limite de reservas (argumentos nulos, titularidad,
+  estado y tipo del pase, prioridad estable, rechazo de nodos invalidos,
+  extraccion, eliminacion y vaciado de cola), datos invalidos de libros,
   eliminacion de referencias, despacho, descatalogacion y cierre que conserva
   clientes, salas, libros y reservas, pero limpia los pases diarios.

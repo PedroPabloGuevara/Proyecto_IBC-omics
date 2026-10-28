@@ -28,7 +28,7 @@ void reiniciarRecaudacionDiaria(struct Tienda *tienda) {
 
 /*
 -registra la venta de varios ejemplares y actualiza stock y recaudacion
--si corresponde, elimina la reserva asociada al comprador
+-si hay reservas, solo atiende al primero y vende una unidad de su reserva
 -retorna las unidades vendidas o cero si no se pudo completar la venta
 */
 int registrarVenta(struct Tienda *tienda, struct Libro *libro,
@@ -39,7 +39,7 @@ int registrarVenta(struct Tienda *tienda, struct Libro *libro,
 
     /* Rechaza datos invalidos, libros descatalogados o falta de stock. */
     if (tienda == NULL || libro == NULL || cantidad <= 0 ||
-        libro->disponibilidad == 4 ||
+        libro->disponibilidad != 1 ||
         libro->ejemplaresDisponibles <= 0 || libro->precio < 0 ||
         tienda->recaudacion < 0) {
         return 0;

@@ -111,6 +111,7 @@ static void probarFlujoCompletoDeJornada(void) {
     struct Pase *anaPase;
     struct Pase *betoPase;
     struct Pase *segundoBetoPase;
+    struct Pase *paseCarla;
     struct Pase *pasePendiente;
     struct Pase *paseExtraAna;
     struct Pase *paseInvalido;
@@ -171,6 +172,9 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(paseInvalido != NULL);
     assert(registrarPaseCliente(&tienda, 103, paseInvalido) == 0);
     liberarPase(paseInvalido);
+    paseCarla = crearPasePrueba(1, 508, 1, tienda.fecha, "10:00");
+    assert(paseCarla != NULL);
+    assert(registrarPaseCliente(&tienda, 103, paseCarla) == 1);
     assert(tienda.recaudacion == 0);
 
     assert(solicitarIngreso(&tienda, anaNodo->dato, anaPase, "08:30",
@@ -200,12 +204,9 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 3);
     assert(solicitarIngreso(&tienda, betoNodo->dato, anaPase, "09:06",
                             &resultado) == 0);
-    paseInvalido = crearPasePrueba(1, 508, 1, tienda.fecha, "10:00");
-    assert(paseInvalido != NULL);
-    assert(registrarPaseCliente(&tienda, 103, paseInvalido) == 1);
-    assert(solicitarIngreso(&tienda, carlaNodo->dato, paseInvalido, "18:00",
+    assert(solicitarIngreso(&tienda, carlaNodo->dato, paseCarla, "18:00",
                             &resultado) == 0);
-    assert(solicitarIngreso(&tienda, carlaNodo->dato, paseInvalido,
+    assert(solicitarIngreso(&tienda, carlaNodo->dato, paseCarla,
                             "no-es-hora", &resultado) == 0);
 
     sala = crearSala("Narrativa", 7, 30);
@@ -237,6 +238,12 @@ static void probarFlujoCompletoDeJornada(void) {
                       "Prueba", "01/01/2020", 0) == NULL);
     assert(crearLibro(60, "Estado invalido", 1, 1, "Edicion", 0, 5,
                       "Prueba", "01/01/2020", 0) == NULL);
+    assert(crearLibro(60, "Disponible sin stock", 1, 0, "Edicion", 0, 1,
+                      "Prueba", "01/01/2020", 0) == NULL);
+    assert(crearLibro(60, "Agotado con stock", 1, 1, "Edicion", 0, 2,
+                      "Prueba", "01/01/2020", 0) == NULL);
+    assert(crearLibro(60, "Preventa con stock", 1, 1, "Edicion", 0, 3,
+                      "Prueba", "01/01/2020", 0) == NULL);
     assert(crearLibro(60, NULL, 1, 1, "Edicion", 0, 1,
                       "Prueba", "01/01/2020", 0) == NULL);
     assert(existeLibro(sala->raiz, 20) == 1);
@@ -250,30 +257,31 @@ static void probarFlujoCompletoDeJornada(void) {
     free(nodoDuplicado);
     liberarLibro(duplicado);
 
-    assert(reservarLibro(disponible, anaNodo->dato, 2) == 0);
-    assert(reservarLibro(descatalogado, anaNodo->dato, 2) == 0);
-    assert(reservarLibro(preventa, anaNodo->dato, 2) == 1);
-    assert(reservarLibro(preventa, betoNodo->dato, 3) == 1);
-    assert(reservarLibro(preventa, carlaNodo->dato, 4) == 1);
-    assert(reservarLibro(preventa, carlaNodo->dato, 4) == 0);
+    assert(reservarLibro(disponible, anaNodo->dato, anaPase) == 0);
+    assert(reservarLibro(descatalogado, anaNodo->dato, anaPase) == 0);
+    assert(reservarLibro(preventa, anaNodo->dato, paseCarla) == 0);
+    assert(reservarLibro(preventa, anaNodo->dato, anaPase) == 1);
+    assert(reservarLibro(preventa, betoNodo->dato, betoPase) == 1);
+    assert(reservarLibro(preventa, carlaNodo->dato, paseCarla) == 1);
+    assert(reservarLibro(preventa, carlaNodo->dato, paseCarla) == 0);
     assert(cantidadEnEspera(preventa) == 3);
-    assert(preventa->headReserva->dato->reservador == carlaNodo->dato);
+    assert(preventa->headReserva->dato->reservador == betoNodo->dato);
     assert(preventa->headReserva->sig->dato->reservador == anaNodo->dato);
-    assert(preventa->headReserva->sig->sig->dato->reservador == betoNodo->dato);
+    assert(preventa->headReserva->sig->sig->dato->reservador == carlaNodo->dato);
 
-    assert(recibirDespacho(sala->raiz, 20, 2) == 1);
+    assert(recibirDespacho(sala->raiz, 20, 3) == 1);
     assert(preventa->disponibilidad == 1);
-    assert(preventa->ejemplaresDisponibles == 2);
-    assert(venderEjemplares(&tienda, sala->raiz, 20, 101, 2) == 0);
+    assert(preventa->ejemplaresDisponibles == 3);
+    assert(venderEjemplares(&tienda, sala->raiz, 20, 103, 2) == 0);
     assert(venderEjemplar(&tienda, sala->raiz, 20) == 0);
-    assert(venderEjemplares(&tienda, sala->raiz, 20, 103, 2) == 1);
-    assert(preventa->ejemplaresDisponibles == 1);
-    assert(buscarReserva(preventa, 103) == NULL);
+    assert(venderEjemplares(&tienda, sala->raiz, 20, 102, 2) == 1);
+    assert(preventa->ejemplaresDisponibles == 2);
+    assert(buscarReserva(preventa, 102) == NULL);
     assert(buscarReserva(preventa, 101) != NULL);
     assert(venderEjemplares(&tienda, sala->raiz, 20, 101, 2) == 1);
-    assert(preventa->ejemplaresDisponibles == 0);
+    assert(preventa->ejemplaresDisponibles == 1);
     assert(buscarReserva(preventa, 101) == NULL);
-    assert(buscarReserva(preventa, 102) != NULL);
+    assert(buscarReserva(preventa, 103) != NULL);
     assert(tienda.recaudacion == 1000);
 
     assert(modificarPrecio(sala->raiz, 10, 1200) == 1);
@@ -307,11 +315,19 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(recibirDespacho(sala->raiz, 30, 1) == 0);
     assert(recibirDespacho(sala->raiz, 999, 1) == 0);
 
-    assert(descatalogarLibro(sala->raiz, 50) == 1);
+    assert(reservarLibro(preventaDescatalogar, anaNodo->dato, anaPase) == 1);
+    {
+        int reservasCanceladas = -1;
+
+        assert(descatalogarLibro(sala->raiz, 50, &reservasCanceladas) == 1);
+        assert(reservasCanceladas == 1);
+        reservasCanceladas = -1;
+        assert(descatalogarLibro(sala->raiz, 999, &reservasCanceladas) == 0);
+        assert(reservasCanceladas == 0);
+    }
     assert(preventaDescatalogar->disponibilidad == 4);
     assert(preventaDescatalogar->headReserva == NULL);
-    assert(reservarLibro(preventaDescatalogar, anaNodo->dato, 1) == 0);
-    assert(descatalogarLibro(sala->raiz, 999) == 0);
+    assert(reservarLibro(preventaDescatalogar, anaNodo->dato, anaPase) == 0);
     assert(tienda.recaudacion == 4700);
 
     paseExtraAna = crearPasePrueba(1, 509, 1, tienda.fecha, "12:00");
@@ -344,8 +360,8 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(buscarCliente(tienda.headClientes, 103) == carlaNodo);
     assert(tienda.headSalas == nodoSala);
     assert(buscarLibro(sala->raiz, 20)->dato == preventa);
-    assert(buscarReserva(preventa, 102) != NULL);
-    assert(buscarReserva(preventa, 103) == NULL);
+    assert(buscarReserva(preventa, 102) == NULL);
+    assert(buscarReserva(preventa, 103) != NULL);
     assert(betoNodo->dato->plibrepases == 0);
     assert(carlaNodo->dato->plibrepases == 0);
     assert(betoNodo->dato->pases[0] == NULL);

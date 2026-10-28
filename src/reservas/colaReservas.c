@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../../include/clientes.h"
 #include "../../include/reservas.h"
+
 
 /*
 -crea una reserva en memoria dinamica
@@ -51,21 +53,36 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
 }
 
 /*
--registra una reserva para un cliente en la lista del libro
--solo permite reservar libros en preventa (disponibilidad 3)
+-registra un ejemplar reservado para un cliente en un libro en preventa
+-solo permite una reserva por cliente y libro; el pase asociado determina prioridad
 -retorna 1 si se agrego y 0 si la reserva no fue valida o falto memoria
 */
-int reservarLibro(struct Libro *libro, struct Cliente *cliente, int tipoPase) {
+int reservarLibro(struct Libro *libro, struct Cliente *cliente,
+                  struct Pase *pase) {
     struct Reserva *reserva;
     struct NodoReserva *nodo;
+    int esPaseDelCliente = 0;
+    int i;
 
-    if (libro == NULL || cliente == NULL || libro->disponibilidad != 3 ||
-        tipoPase < 1 || tipoPase > 4 ||
+    if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
+        pase == NULL || libro->disponibilidad != 3 ||
+        (pase->estado != 1 && pase->estado != 3) ||
+        pase->tipoPase < 1 || pase->tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
         return 0;
     }
 
-    reserva = crearReserva(cliente, tipoPase);
+    for (i = 0; i < MAXPASES; i++) {
+        if (cliente->pases[i] == pase) {
+            esPaseDelCliente = 1;
+            break;
+        }
+    }
+    if (!esPaseDelCliente) {
+        return 0;
+    }
+
+    reserva = crearReserva(cliente, pase->tipoPase);
     if (reserva == NULL) {
         return 0;
     }
@@ -76,7 +93,11 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente, int tipoPase) {
         return 0;
     }
 
-    encolar(libro, nodo);
+    if (!encolar(libro, nodo)) {
+        free(nodo);
+        free(reserva);
+        return 0;
+    }
     return 1;
 }
 
@@ -87,21 +108,21 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente, int tipoPase) {
 -si el libro, el nodo o la reserva son NULL, no realiza cambios
 -el nodo debe estar desligado de cualquier lista
 */
-void encolar(struct Libro *libro, struct NodoReserva *nuevo) {
+int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
     struct NodoReserva *rec;
 
     if (libro == NULL || nuevo == NULL || nuevo->dato == NULL ||
         nuevo->dato->reservador == NULL || libro->disponibilidad != 3 ||
         nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 ||
         nuevo->sig != NULL) {
-        return;
+        return 0;
     }
 
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         if (rec == nuevo ||
             (rec->dato != NULL && rec->dato->reservador != NULL &&
              rec->dato->reservador->rut == nuevo->dato->reservador->rut)) {
-            return;
+            return 0;
         }
     }
 
@@ -132,6 +153,7 @@ void encolar(struct Libro *libro, struct NodoReserva *nuevo) {
         nuevo->sig = rec->sig;
         rec->sig = nuevo;
     }
+    return 1;
 }
 
 /*
@@ -233,8 +255,7 @@ int eliminarReserva(struct Libro *libro, int rut) {
 
     rec = libro->headReserva;
     while (rec != NULL &&
-           (rec->dato == NULL || rec->dato->reservador == NULL ||
-            rec->dato->reservador->rut != rut)) {
+        (rec->dato == NULL || rec->dato->reservador == NULL || rec->dato->reservador->rut != rut)) {
         ant = rec;
         rec = rec->sig;
     }

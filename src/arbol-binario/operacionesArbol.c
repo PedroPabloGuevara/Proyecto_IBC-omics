@@ -153,19 +153,29 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
 -marca un libro como descatalogado (4): la editorial no lo reimprime
 -el nodo NO se borra del arbol, porque el libro sigue existiendo en la tienda y su informacion se conserva
 -despues de esto, venderEjemplar y recibirDespacho ya no operan sobre ese libro
+-informa cuantas reservas se cancelaron; el puntero de salida puede ser NULL
 -recibe la raiz del arbol y el codigo del libro
 -retorna 1 si se marco como descatalogado, 0 si no existe un libro con ese codigo
 */
 
-int descatalogarLibro(struct NodoLibro *raiz, int codigo) {
+int descatalogarLibro(struct NodoLibro *raiz, int codigo,
+                      int *reservasCanceladas) {
 
     struct NodoLibro *nodo ;
+
+    if (reservasCanceladas != NULL) {
+        *reservasCanceladas = 0;
+    }
+
     nodo = buscarLibro(raiz, codigo) ;
 
     if (nodo == NULL) {
         return 0 ; /*no se encontro el libro*/
     }
 
+    if (reservasCanceladas != NULL) {
+        *reservasCanceladas = cantidadEnEspera(nodo->dato);
+    }
     vaciarCola(nodo->dato);
     nodo->dato->disponibilidad = 4 ; /*descatalogado (4)*/
 

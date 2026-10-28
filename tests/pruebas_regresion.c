@@ -95,7 +95,10 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     struct NodoLibro *nodoLibro;
     struct NodoCliente *nodoCliente;
     struct Pase *ticket;
+    struct Pase *ticketCarla;
     struct Pase *registro;
+    struct Reserva *reservaRechazada;
+    struct NodoReserva *nodoReservaRechazado;
     int recaudacionFinal = -1;
 
     tienda.fecha = "27/10/2026";
@@ -128,9 +131,18 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(nodoLibro != NULL && insertarLibro(&sala->raiz, nodoLibro) == 1);
     nodoLibro = crearNodoLibro(libroDos);
     assert(nodoLibro != NULL && insertarLibro(&sala->raiz, nodoLibro) == 1);
-    assert(reservarLibro(libroUno, nodoCliente->dato, 4) == 0);
+    reservaRechazada = crearReserva(nodoCliente->dato, 2);
+    assert(reservaRechazada != NULL);
+    nodoReservaRechazado = crearNodoReserva(reservaRechazada);
+    assert(nodoReservaRechazado != NULL);
+    assert(encolar(libroUno, nodoReservaRechazado) == 0);
+    assert(libroUno->headReserva == NULL);
+    free(nodoReservaRechazado);
+    free(reservaRechazada);
+    assert(reservarLibro(libroUno, nodoCliente->dato, ticket) == 0);
+    libroDos->ejemplaresDisponibles = 0;
     libroDos->disponibilidad = 3;
-    assert(reservarLibro(libroDos, nodoCliente->dato, 4) == 1);
+    assert(reservarLibro(libroDos, nodoCliente->dato, ticket) == 1);
 
     assert(recibirDespacho(sala->raiz, 10, INT_MAX) == 0);
     assert(libroUno->ejemplaresDisponibles == 1);
@@ -150,7 +162,10 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(agregarCliente(&tienda.headClientes, "Carla", 789) == 1);
     nodoCliente = buscarCliente(tienda.headClientes, 789);
     assert(nodoCliente != NULL);
-    assert(reservarLibro(libroDos, nodoCliente->dato, 2) == 1);
+    ticketCarla = crearPase(1, 201, 0, 1, tienda.fecha, "11:00");
+    assert(ticketCarla != NULL);
+    assert(registrarPaseCliente(&tienda, 789, ticketCarla) == 1);
+    assert(reservarLibro(libroDos, nodoCliente->dato, ticketCarla) == 1);
 
     assert(venderEjemplar(&tienda, sala->raiz, 10) == 1);
     assert(tienda.recaudacion == 500);
@@ -173,9 +188,128 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     free(sala);
 }
 
+static void probarCasosLimiteDeReservas(void) {
+    struct Cliente clientes[5] = {
+        {"Uno", NULL, 1001, 0},
+        {"Dos", NULL, 1002, 0},
+        {"Tres", NULL, 1003, 0},
+        {"Cuatro", NULL, 1004, 0},
+        {"Ajeno", NULL, 1005, 0}
+    };
+    struct Pase pases[5] = {
+        {2, 1, 0, 1, NULL, NULL},
+        {4, 2, 0, 1, NULL, NULL},
+        {1, 3, 0, 1, NULL, NULL},
+        {4, 4, 0, 1, NULL, NULL},
+        {2, 5, 0, 1, NULL, NULL}
+    };
+    struct Pase paseAnulado = {2, 6, 0, 2, NULL, NULL};
+    struct Pase paseVencido = {2, 7, 0, 4, NULL, NULL};
+    struct Pase paseTipoInvalido = {5, 8, 0, 1, NULL, NULL};
+    struct Pase paseTipoCero = {0, 9, 0, 1, NULL, NULL};
+    struct Pase *pasesPorCliente[5][MAXPASES] = {{0}};
+    struct Libro *preventa =
+        crearLibro(101, "Preventa", 500, 0, "Edicion", 0, 3,
+                   "Drama", "01/01/2020", 0);
+    struct Libro *disponible =
+        crearLibro(102, "Disponible", 500, 1, "Edicion", 0, 1,
+                   "Drama", "01/01/2020", 0);
+    struct Reserva reservaDuplicada = {&clientes[0], 2};
+    struct Reserva reservaTipoInvalido = {&clientes[4], 0};
+    struct Reserva reservaTipoAlto = {&clientes[4], 5};
+    struct Reserva reservaSinCliente = {NULL, 2};
+    struct Reserva reservaConEnlace = {&clientes[4], 2};
+    struct NodoReserva nodoDuplicado = {&reservaDuplicada, NULL};
+    struct NodoReserva nodoTipoInvalido = {&reservaTipoInvalido, NULL};
+    struct NodoReserva nodoTipoAlto = {&reservaTipoAlto, NULL};
+    struct NodoReserva nodoSinDatos = {NULL, NULL};
+    struct NodoReserva nodoSinCliente = {&reservaSinCliente, NULL};
+    struct NodoReserva nodoConEnlace = {&reservaConEnlace, &nodoDuplicado};
+    struct NodoReserva *nodo;
+
+    assert(preventa != NULL && disponible != NULL);
+
+    pasesPorCliente[0][0] = &pases[0];
+    pasesPorCliente[1][0] = &pases[1];
+    pasesPorCliente[2][0] = &pases[2];
+    pasesPorCliente[3][0] = &pases[3];
+    pasesPorCliente[4][0] = &pases[4];
+    clientes[0].pases = pasesPorCliente[0];
+    clientes[1].pases = pasesPorCliente[1];
+    clientes[2].pases = pasesPorCliente[2];
+    clientes[3].pases = pasesPorCliente[3];
+    clientes[4].pases = pasesPorCliente[4];
+
+    assert(reservarLibro(NULL, &clientes[0], &pases[0]) == 0);
+    assert(reservarLibro(preventa, NULL, &pases[0]) == 0);
+    assert(reservarLibro(preventa, &clientes[0], NULL) == 0);
+    clientes[4].pases = NULL;
+    assert(reservarLibro(preventa, &clientes[4], &pases[4]) == 0);
+    clientes[4].pases = pasesPorCliente[4];
+
+    assert(reservarLibro(preventa, &clientes[0], &pases[4]) == 0);
+    assert(reservarLibro(preventa, &clientes[0], &paseAnulado) == 0);
+    assert(reservarLibro(preventa, &clientes[0], &paseVencido) == 0);
+    assert(reservarLibro(preventa, &clientes[0], &paseTipoInvalido) == 0);
+    assert(reservarLibro(preventa, &clientes[0], &paseTipoCero) == 0);
+
+    assert(reservarLibro(disponible, &clientes[0], &pases[0]) == 0);
+    assert(reservarLibro(preventa, &clientes[0], &pases[0]) == 1);
+    assert(reservarLibro(preventa, &clientes[0], &pases[0]) == 0);
+    assert(reservarLibro(preventa, &clientes[1], &pases[1]) == 1);
+    assert(reservarLibro(preventa, &clientes[2], &pases[2]) == 1);
+    assert(reservarLibro(preventa, &clientes[3], &pases[3]) == 1);
+    assert(cantidadEnEspera(preventa) == 4);
+
+    nodo = preventa->headReserva;
+    assert(nodo->dato->reservador == &clientes[1]);
+    nodo = nodo->sig;
+    assert(nodo->dato->reservador == &clientes[3]);
+    nodo = nodo->sig;
+    assert(nodo->dato->reservador == &clientes[0]);
+    nodo = nodo->sig;
+    assert(nodo->dato->reservador == &clientes[2]);
+    assert(nodo->sig == NULL);
+
+    assert(encolar(preventa, NULL) == 0);
+    assert(encolar(NULL, &nodoDuplicado) == 0);
+    assert(encolar(preventa, &nodoSinDatos) == 0);
+    assert(encolar(preventa, &nodoSinCliente) == 0);
+    assert(encolar(preventa, &nodoDuplicado) == 0);
+    assert(encolar(preventa, &nodoTipoInvalido) == 0);
+    assert(encolar(preventa, &nodoTipoAlto) == 0);
+    assert(encolar(preventa, &nodoConEnlace) == 0);
+    assert(encolar(disponible, &nodoTipoInvalido) == 0);
+    assert(cantidadEnEspera(preventa) == 4);
+    assert(disponible->headReserva == NULL);
+
+    nodo = desencolar(preventa);
+    assert(nodo != NULL && nodo->dato->reservador == &clientes[1]);
+    assert(nodo->sig == NULL);
+    free(nodo->dato);
+    free(nodo);
+    assert(eliminarReserva(preventa, 1003) == 1);
+    assert(eliminarReserva(preventa, 1004) == 1);
+    assert(eliminarReserva(preventa, 1001) == 1);
+    assert(eliminarReserva(preventa, 1001) == 0);
+    assert(cantidadEnEspera(preventa) == 0);
+    assert(desencolar(preventa) == NULL);
+
+    assert(reservarLibro(preventa, &clientes[0], &pases[0]) == 1);
+    assert(reservarLibro(preventa, &clientes[1], &pases[1]) == 1);
+    vaciarCola(preventa);
+    vaciarCola(preventa);
+    assert(preventa->headReserva == NULL);
+    assert(cantidadEnEspera(preventa) == 0);
+
+    liberarLibro(preventa);
+    liberarLibro(disponible);
+}
+
 int main(void) {
     probarIngresosUnicosYReingresos();
     probarEliminacionDeReferenciasYDespachos();
+    probarCasosLimiteDeReservas();
     puts("Pruebas de regresion completadas.");
     return 0;
 }
