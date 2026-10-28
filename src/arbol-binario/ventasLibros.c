@@ -114,8 +114,7 @@ int venderEjemplar(struct Tienda *tienda, struct NodoLibro *raiz, int codigo) {
 -elimina la reserva de ese rut si el comprador tenia una
 -retorna las unidades vendidas o cero si los datos no permiten la venta
 */
-int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz, int codigo,
-                     int rut, int cantidad) {
+int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz, int codigo, int rut, int cantidad) {
     struct NodoLibro *nodo;
 
     /* Rechaza argumentos incompletos antes de buscar el producto. */

@@ -311,3 +311,92 @@ void vaciarCola(struct Libro *libro) {
 
     libro->headReserva = NULL;
 }
+
+/*
+-modifica la reserva de un cliente cambiando el pase con que reserva
+-el nuevo pase debe pertenecer al cliente y estar activo o utilizado, igual que en reservarLibro
+-el tipo del pase determina la prioridad, por eso la reserva se vuelve a ubicar en la lista
+-si el tipo de pase no cambia, la reserva conserva su posicion
+-no reserva ni libera memoria: reutiliza el mismo nodo y la misma reserva
+-recibe el libro donde esta la reserva, el cliente que reservo y el pase nuevo
+-ejemplo: lista 1,2,3,4 (todos con pase general); el cliente 3 cambia a un pase
+prioritario y la lista queda 3,1,2,4
+-retorna 1 si se modifico, 0 si el libro no esta en preventa, el cliente no tiene reserva o el pase no es valido
+*/
+int modificarReserva(struct Libro *libro, struct Cliente *cliente,
+                     struct Pase *nuevoPase) {
+    struct NodoReserva *nodo;           /* nodo de la reserva que se quiere modificar */
+    struct NodoReserva *ant = NULL;     /* nodo anterior, necesario para desenlazar */
+    int esPaseDelCliente = 0;           /* 1 si el pase esta en el arreglo del cliente */
+    int i;
+
+    /* Primera etapa: validar los datos, sin modificar nada todavia.
+    - el libro debe existir y estar en preventa (3), porque solo ahi hay reservas
+    - el cliente debe existir y tener su arreglo de pases
+    - el pase debe existir, estar activo (1) o utilizado (3) y tener tipo entre 1 y 4
+       son las mismas reglas de reservarLibro, para que ambas funciones sean coherentes */
+    if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
+        nuevoPase == NULL || libro->disponibilidad != 3 ||
+        (nuevoPase->estado != 1 && nuevoPase->estado != 3) ||
+        nuevoPase->tipoPase < 1 || nuevoPase->tipoPase > 4) {
+        return 0;
+    }
+
+    /* Segunda etapa: comprobar que el pase le pertenece a este cliente.
+    se compara la direccion de memoria (no el codigo) con cada pase del arreglo,
+    asi un cliente no puede usar el pase de otra persona para subir de prioridad */
+    for (i = 0; i < MAXPASES; i++) {
+        if (cliente->pases[i] == nuevoPase) {
+            esPaseDelCliente = 1;
+            break;      /* ya se encontro, no hace falta seguir revisando */
+        }
+    }
+    if (!esPaseDelCliente) {
+        return 0;
+    }
+
+    /* Tercera etapa: buscar la reserva del cliente en la lista del libro.
+    se avanza nodo por nodo comparando el rut, y se va guardando el anterior (ant)
+    porque para sacar un nodo de una lista enlazada hay que reconectar el anterior;
+       las condiciones con NULL evitan fallar si algun nodo esta incompleto */
+    nodo = libro->headReserva;
+    while (nodo != NULL &&
+        (nodo->dato == NULL || nodo->dato->reservador == NULL || nodo->dato->reservador->rut != cliente->rut)) {
+        ant = nodo;
+        nodo = nodo->sig;
+    }
+
+    /* si el ciclo llego al final sin encontrar nada, el cliente no tiene reserva */
+    if (nodo == NULL) {
+        return 0;
+    }
+
+    /* Cuarta etapa: si el tipo de pase es el mismo, la prioridad no cambia.
+       no hay nada que reubicar, asi que la reserva conserva su posicion actual */
+    if (nodo->dato->tipoPase == nuevoPase->tipoPase) {
+        return 1;
+    }
+
+    /* Quinta etapa: sacar el nodo de la lista sin liberarlo.
+    - si ant es NULL, el nodo era el primero: head pasa a apuntar al segundo
+    - si no, el nodo anterior salta al siguiente, dejando fuera al nodo
+       el nodo sigue existiendo en memoria, solo deja de estar enlazado */
+    if (ant == NULL) {
+        libro->headReserva = nodo->sig;
+    } else {
+        ant->sig = nodo->sig;
+    }
+
+    /* se corta el enlace del nodo con el resto, porque encolar solo acepta
+    nodos que no estan enlazados a ninguna lista (sig en NULL) */
+    nodo->sig = NULL;
+
+    /* Sexta etapa: actualizar el tipo y volver a ubicar el nodo.
+    primero se cambia el tipo de pase de la reserva, y luego encolar decide
+    su lugar con la regla de siempre: los prioritarios (4) van delante de los
+    normales pero detras de otros prioritarios, y los demas al final.
+    encolar no puede fallar aqui: el libro esta en preventa, el tipo es valido,
+    el cliente existe y el nodo ya no esta en la lista, asi que no hay duplicados */
+    nodo->dato->tipoPase = nuevoPase->tipoPase;
+    return encolar(libro, nodo);
+}

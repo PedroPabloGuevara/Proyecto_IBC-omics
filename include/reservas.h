@@ -18,6 +18,10 @@ int cantidadEnEspera(struct Libro *libro);
 void mostrarCola(struct Libro *libro);
 struct NodoReserva *buscarReserva(struct Libro *libro, int rut);
 int eliminarReserva(struct Libro *libro, int rut);
+/* Cambia el pase de una reserva existente y la reubica segun su nueva prioridad. */
+int modificarReserva(struct Libro *libro, struct Cliente *cliente,
+                     struct Pase *nuevoPase);
 void vaciarCola(struct Libro *libro);
+
 
 #endif
