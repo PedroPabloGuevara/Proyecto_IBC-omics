@@ -4,13 +4,19 @@
 #include <string.h>
 #include <stdio.h>
 
+/*
+ * Crea una copia dinamica de un texto para que el objeto destino sea propietario
+ * de su memoria; retorna NULL si el texto no existe o malloc falla.
+ */
 char *copiarTexto(char *texto) {
     char *copia;
 
+    /* No se puede copiar una cadena inexistente. */
     if (texto == NULL) {
         return NULL;
     }
 
+    /* Reserva espacio para el terminador y copia solo si la reserva tuvo exito. */
     copia = malloc(strlen(texto) + 1);
     if (copia != NULL) {
         strcpy(copia, texto);
@@ -87,6 +93,7 @@ struct NodoLibro *crearNodoLibro(struct Libro *dato) {
     if (nuevoNodo == NULL) {
         return NULL;
     }
+    /* El nodo enlaza el libro recibido; no duplica ni libera ese objeto. */
     nuevoNodo -> dato = dato ;
     nuevoNodo -> izq = NULL ;
     nuevoNodo -> der = NULL ;
@@ -96,12 +103,11 @@ struct NodoLibro *crearNodoLibro(struct Libro *dato) {
 
 
 /*
--busca un libro por codigo aprovechando que el arbol esta ordenado
--recibe la raiz del arbol y el codigo a buscar
--retorna el nodo si lo encuentra, o NULL si no existe
-*/
-
+ * Busca un libro por codigo aprovechando el orden del arbol binario.
+ * Retorna el nodo encontrado o NULL si el codigo no existe.
+ */
 struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo){
+    /* Una rama vacia indica que el codigo no esta en el arbol. */
     if (raiz == NULL) {
         return NULL ; /*no se encontro el libro*/
     }

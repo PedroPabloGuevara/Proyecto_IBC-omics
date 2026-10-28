@@ -2,9 +2,14 @@
 
 #include <stdlib.h>
 
+/*
+ * Busca una sala por codigo en la lista y retorna su nodo.
+ * Retorna NULL si no existe coincidencia.
+ */
 struct NodoSala *buscarSala(struct NodoSala *headSalas, int codigo) {
     struct NodoSala *rec = headSalas;
 
+    /* Recorre los enlaces hacia adelante sin cambiar la lista. */
     while (rec != NULL) {
         if (rec->dato->codigo == codigo) {
             return rec;
@@ -15,6 +20,10 @@ struct NodoSala *buscarSala(struct NodoSala *headSalas, int codigo) {
     return NULL;
 }
 
+/*
+ * Desenlaza una sala por codigo y devuelve el nodo separado de la lista.
+ * No libera ni el nodo ni la sala; la funcion llamadora define su propiedad.
+ */
 struct NodoSala *desenlazarSala(struct NodoSala **headSalas, int codigo) {
     struct NodoSala *sala;
 
@@ -22,11 +31,13 @@ struct NodoSala *desenlazarSala(struct NodoSala **headSalas, int codigo) {
         return NULL;
     }
 
+    /* Busca primero para no modificar la lista si el codigo no existe. */
     sala = buscarSala(*headSalas, codigo);
     if (sala == NULL) {
         return NULL;
     }
 
+    /* Repara el enlace anterior y el siguiente, incluyendo los extremos. */
     if (sala->ant == NULL) {
         *headSalas = sala->sig;
     } else {
@@ -37,6 +48,7 @@ struct NodoSala *desenlazarSala(struct NodoSala **headSalas, int codigo) {
         sala->sig->ant = sala->ant;
     }
 
+    /* Deja el nodo aislado para que pueda liberarse o transferirse con seguridad. */
     sala->sig = NULL;
     sala->ant = NULL;
     return sala;
@@ -54,6 +66,7 @@ int EliminarSala(struct NodoSala **headSalas, int codigo) {
         return -1;
     }
 
+    /* Separa el nodo y libera solo el envoltorio, no la sala que contiene. */
     sala = desenlazarSala(headSalas, codigo);
     if (sala == NULL) {
         return 0;
@@ -72,6 +85,7 @@ struct SalaTematica *QuitarSala(struct NodoSala **headSalas, int codigo) {
     struct NodoSala *nodoSala;
     struct SalaTematica *sala;
 
+    /* Transfiere la propiedad de la sala al llamador y libera solo su nodo. */
     nodoSala = desenlazarSala(headSalas, codigo);
     if (nodoSala == NULL) {
         return NULL;

@@ -21,6 +21,7 @@ int calcularRecaudacionDiaria(struct Tienda *tienda) {
 -si tienda es NULL, no realiza cambios
 */
 void reiniciarRecaudacionDiaria(struct Tienda *tienda) {
+    /* Una tienda inexistente no tiene un acumulador que pueda reiniciarse. */
     if (tienda != NULL) {
         tienda->recaudacion = 0;
     }
@@ -94,10 +95,12 @@ int registrarVenta(struct Tienda *tienda, struct Libro *libro,
 int venderEjemplar(struct Tienda *tienda, struct NodoLibro *raiz, int codigo) {
     struct NodoLibro *nodo;
 
+    /* Esta interfaz no identifica comprador, asi que no puede cumplir reservas. */
     if (tienda == NULL) {
         return 0;
     }
 
+    /* Convierte el codigo en el libro que usara la operacion comun de venta. */
     nodo = buscarLibro(raiz, codigo);
     if (nodo == NULL) {
         return 0;
@@ -115,10 +118,12 @@ int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz, int codigo,
                      int rut, int cantidad) {
     struct NodoLibro *nodo;
 
+    /* Rechaza argumentos incompletos antes de buscar el producto. */
     if (tienda == NULL || cantidad <= 0) {
         return 0;
     }
 
+    /* Centraliza la venta para compartir validacion, stock y recaudacion. */
     nodo = buscarLibro(raiz, codigo);
     if (nodo == NULL) {
         return 0;

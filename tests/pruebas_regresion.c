@@ -12,6 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Verifica que el ingreso inicial quede registrado una sola vez y que un pase
+ * utilizado pueda reingresar sin alterar la recaudacion.
+ */
 void probarIngresosUnicosYReingresos(void) {
     struct Tienda tienda = {0};
     struct NodoCliente *nodoCliente;
@@ -20,6 +24,7 @@ void probarIngresosUnicosYReingresos(void) {
     struct Pase *paseHoraCompra;
     struct ResultadoFila resultado;
 
+    /* Configura la fecha y crea un cliente con pases para la misma jornada. */
     tienda.fecha = "27/10/2026";
     tienda.hora_inicio = "09:00";
     tienda.hora_termino = "18:00";
@@ -62,6 +67,7 @@ void probarIngresosUnicosYReingresos(void) {
     assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 2);
     assert(tienda.recaudacion == 0);
 
+    /* Estados anulados y vencidos deben fallar aunque el cliente los posea. */
     nodoCliente->dato->pases[2] =
         crearPase(1, 101, 0, 2, tienda.fecha, "10:00");
     nodoCliente->dato->pases[3] =
@@ -86,6 +92,10 @@ void probarIngresosUnicosYReingresos(void) {
     assert(eliminarCliente(&tienda, 123) == 1);
 }
 
+/*
+ * Prueba que eliminar clientes retire las referencias de fila y reservas,
+ * y que el cierre preserve datos duraderos de libros y clientes.
+ */
 void probarEliminacionDeReferenciasYDespachos(void) {
     struct Tienda tienda = {0};
     struct SalaTematica *sala;
@@ -101,6 +111,7 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     struct NodoReserva *nodoReservaRechazado;
     int recaudacionFinal = -1;
 
+    /* Prepara la tienda, el cliente y sus estructuras diarias. */
     tienda.fecha = "27/10/2026";
     tienda.hora_inicio = "09:00";
     tienda.hora_termino = "18:00";
@@ -122,6 +133,7 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(nodoSala != NULL);
     insertarSala(&tienda.headSalas, nodoSala);
 
+    /* Inserta libros y confirma que no se permita reservar uno disponible. */
     libroUno = crearLibro(10, "A", 500, 1, "Edicion", 0, 1,
                           "Drama", "01/01/2020", 0);
     libroDos = crearLibro(20, "B", 600, 1, "Edicion", 0, 1,
@@ -147,6 +159,7 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(recibirDespacho(sala->raiz, 10, INT_MAX) == 0);
     assert(libroUno->ejemplaresDisponibles == 1);
 
+    /* El registro diario usa una copia independiente del pase del cliente. */
     registro = crearPase(ticket->tipoPase, ticket->codigo, ticket->valor, 3,
                          ticket->fecha, ticket->hora);
     assert(registro != NULL);
@@ -159,6 +172,7 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(buscarReserva(libroDos, 456) == NULL);
     assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 1);
 
+    /* Tras eliminar al primer cliente, otro puede reservar el libro en preventa. */
     assert(agregarCliente(&tienda.headClientes, "Carla", 789) == 1);
     nodoCliente = buscarCliente(tienda.headClientes, 789);
     assert(nodoCliente != NULL);
@@ -179,6 +193,7 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(tienda.filaEntrada == NULL);
     assert(tienda.filaPasesDeldia == NULL);
 
+    /* Libera los objetos restantes creados por este escenario de regresion. */
     assert(eliminarCliente(&tienda, 789) == 1);
     while (sala->raiz != NULL) {
         assert(eliminarLibro(&sala->raiz, sala->raiz->dato->codigo) == 1);
@@ -188,6 +203,10 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     free(sala);
 }
 
+/*
+ * Comprueba argumentos invalidos, titularidad del pase, orden estable de
+ * prioridades, insercion, extraccion, eliminacion y vaciado de reservas.
+ */
 static void probarCasosLimiteDeReservas(void) {
     struct Cliente clientes[5] = {
         {"Uno", NULL, 1001, 0},
@@ -227,6 +246,7 @@ static void probarCasosLimiteDeReservas(void) {
     struct NodoReserva nodoConEnlace = {&reservaConEnlace, &nodoDuplicado};
     struct NodoReserva *nodo;
 
+    /* Prepara clientes y credenciales sin asignaciones dinamicas de prueba. */
     assert(preventa != NULL && disponible != NULL);
 
     pasesPorCliente[0][0] = &pases[0];
@@ -240,6 +260,7 @@ static void probarCasosLimiteDeReservas(void) {
     clientes[3].pases = pasesPorCliente[3];
     clientes[4].pases = pasesPorCliente[4];
 
+    /* Rechaza punteros ausentes, pases ajenos, estados invalidos y tipo incorrecto. */
     assert(reservarLibro(NULL, &clientes[0], &pases[0]) == 0);
     assert(reservarLibro(preventa, NULL, &pases[0]) == 0);
     assert(reservarLibro(preventa, &clientes[0], NULL) == 0);
@@ -253,6 +274,7 @@ static void probarCasosLimiteDeReservas(void) {
     assert(reservarLibro(preventa, &clientes[0], &paseTipoInvalido) == 0);
     assert(reservarLibro(preventa, &clientes[0], &paseTipoCero) == 0);
 
+    /* Inserta reservas validas y comprueba prioridad FIFO entre iguales. */
     assert(reservarLibro(disponible, &clientes[0], &pases[0]) == 0);
     assert(reservarLibro(preventa, &clientes[0], &pases[0]) == 1);
     assert(reservarLibro(preventa, &clientes[0], &pases[0]) == 0);
@@ -271,6 +293,7 @@ static void probarCasosLimiteDeReservas(void) {
     assert(nodo->dato->reservador == &clientes[2]);
     assert(nodo->sig == NULL);
 
+    /* Nodos mal formados no deben alterar el contenido de la cola existente. */
     assert(encolar(preventa, NULL) == 0);
     assert(encolar(NULL, &nodoDuplicado) == 0);
     assert(encolar(preventa, &nodoSinDatos) == 0);
@@ -283,6 +306,7 @@ static void probarCasosLimiteDeReservas(void) {
     assert(cantidadEnEspera(preventa) == 4);
     assert(disponible->headReserva == NULL);
 
+    /* Verifica que desencolar, eliminar y vaciar dejen enlaces consistentes. */
     nodo = desencolar(preventa);
     assert(nodo != NULL && nodo->dato->reservador == &clientes[1]);
     assert(nodo->sig == NULL);
@@ -306,7 +330,12 @@ static void probarCasosLimiteDeReservas(void) {
     liberarLibro(disponible);
 }
 
+/*
+ * Punto de entrada de las pruebas de regresion.
+ * Retorna cero cuando todos los escenarios completan sus aserciones.
+ */
 int main(void) {
+    /* Ejecuta las pruebas regresivas de ingreso, referencias y reservas. */
     probarIngresosUnicosYReingresos();
     probarEliminacionDeReferenciasYDespachos();
     probarCasosLimiteDeReservas();

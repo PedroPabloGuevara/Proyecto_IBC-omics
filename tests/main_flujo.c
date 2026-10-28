@@ -11,17 +11,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Crea un pase de prueba usando cadenas constantes y devuelve la estructura
+ * dinamica producida por crearPase.
+ */
 static struct Pase *crearPasePrueba(int tipo, int codigo, int estado,
                                     const char *fecha, const char *hora) {
+    /* crearPase copia ambas cadenas; el objeto resultante es liberable normalmente. */
     return crearPase(tipo, codigo, 0, estado, (char *)fecha, (char *)hora);
 }
 
+/*
+ * Crea un libro de prueba, lo envuelve en un nodo y lo inserta en la sala.
+ * Las aserciones detienen la prueba si cualquier paso de preparacion falla.
+ */
 static struct Libro *agregarLibroPrueba(struct SalaTematica *sala, int codigo,
                                         const char *nombre, int precio,
                                         int stock, int disponibilidad) {
     struct Libro *libro;
     struct NodoLibro *nodo;
 
+    /* Configura los campos no relevantes con valores constantes de prueba. */
     libro = crearLibro(codigo, (char *)nombre, precio, stock, "Edicion", 0,
                        disponibilidad, "Prueba", "01/01/2020", 0);
     assert(libro != NULL);
@@ -31,10 +41,15 @@ static struct Libro *agregarLibroPrueba(struct SalaTematica *sala, int codigo,
     return libro;
 }
 
+/*
+ * Comprueba formatos de fecha/hora, limites del horario y configuracion unica
+ * del control de acceso.
+ */
 static void probarFechasHorasYConfiguracion(void) {
     struct Tienda tienda = {0};
     int minutos = -1;
 
+    /* Verifica fechas calendario y rechaza formatos o dias imposibles. */
     assert(validarFechaFila("29/02/2024") == 1);
     assert(validarFechaFila("29/02/2023") == 0);
     assert(validarFechaFila("31/04/2024") == 0);
@@ -43,6 +58,7 @@ static void probarFechasHorasYConfiguracion(void) {
     assert(validarFechaFila("1/01/2024") == 0);
     assert(validarFechaFila(NULL) == 0);
 
+    /* Verifica conversion a minutos y rechazo de horas mal formadas. */
     assert(validarHoraFila("00:00", &minutos) == 1 && minutos == 0);
     assert(validarHoraFila("23:59", &minutos) == 1 && minutos == 1439);
     assert(validarHoraFila("24:00", &minutos) == 0);
@@ -51,6 +67,7 @@ static void probarFechasHorasYConfiguracion(void) {
     assert(validarHoraFila("xx:00", &minutos) == 0);
     assert(validarHoraFila("12:00", NULL) == 0);
 
+    /* La apertura valida datos y evita configurar dos veces la misma fila. */
     tienda.fecha = "31/02/2024";
     tienda.hora_inicio = "09:00";
     tienda.hora_termino = "18:00";
@@ -71,6 +88,10 @@ static void probarFechasHorasYConfiguracion(void) {
     liberarControlAcceso(&tienda);
 }
 
+/*
+ * Comprueba que cada cliente admite hasta MAXPASES, que RUT y nombre se
+ * modifican correctamente y que eliminar clientes libera su informacion.
+ */
 static void probarLimitePasesPorCliente(void) {
     struct Tienda tienda = {0};
     struct Pase *pase;
@@ -87,6 +108,7 @@ static void probarLimitePasesPorCliente(void) {
     assert(modificarCliente(tienda.headClientes, 902, NULL, 902) == 0);
     assert(modificarCliente(tienda.headClientes, 999, "No existe", 999) == 0);
 
+    /* Completa exactamente la capacidad antes de probar el rechazo del pase extra. */
     for (i = 0; i < MAXPASES; i++) {
         pase = crearPasePrueba(1, 2000 + i, 1, tienda.fecha, "hora libre");
         assert(pase != NULL);
@@ -101,6 +123,10 @@ static void probarLimitePasesPorCliente(void) {
     assert(eliminarCliente(&tienda, 901) == 1);
 }
 
+/*
+ * Ejecuta una jornada integrada y valida clientes, ingreso, libros, reservas,
+ * ventas, cierre, conservacion de datos y reinicio para un nuevo dia.
+ */
 static void probarFlujoCompletoDeJornada(void) {
     struct Tienda tienda = {0};
     struct SalaTematica *sala;
@@ -126,6 +152,7 @@ static void probarFlujoCompletoDeJornada(void) {
     struct NodoLibro *nodoDuplicado;
     int recaudacionFinal = -1;
 
+    /* Prepara una tienda y los clientes que usaran el resto del flujo. */
     tienda.fecha = "29/02/2024";
     tienda.hora_inicio = "09:00";
     tienda.hora_termino = "18:00";
@@ -142,6 +169,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(anaNodo != NULL && betoNodo != NULL && carlaNodo != NULL);
     assert(buscarCliente(tienda.headClientes, 999) == NULL);
 
+    /* Registra credenciales validas y verifica que las invalidas no se asocien. */
     anaPase = crearPasePrueba(2, 501, 1, tienda.fecha, "25:99");
     betoPase = crearPasePrueba(4, 502, 1, tienda.fecha, "06:00");
     segundoBetoPase = crearPasePrueba(4, 503, 1, tienda.fecha, "23:59");
@@ -177,6 +205,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(registrarPaseCliente(&tienda, 103, paseCarla) == 1);
     assert(tienda.recaudacion == 0);
 
+    /* Comprueba la espera antes de abrir, la prioridad y el ingreso al abrir. */
     assert(solicitarIngreso(&tienda, anaNodo->dato, anaPase, "08:30",
                             &resultado) == 1);
     assert(resultado.esperando == 1 && resultado.admitidos == 0);
@@ -209,6 +238,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(solicitarIngreso(&tienda, carlaNodo->dato, paseCarla,
                             "no-es-hora", &resultado) == 0);
 
+    /* Crea una sala de prueba y agrega libros en distintos estados. */
     sala = crearSala("Narrativa", 7, 30);
     assert(sala != NULL);
     nodoSala = crearNodoSala(sala);
@@ -257,6 +287,7 @@ static void probarFlujoCompletoDeJornada(void) {
     free(nodoDuplicado);
     liberarLibro(duplicado);
 
+    /* Verifica las reglas de reserva y el orden de prioridad tras el despacho. */
     assert(reservarLibro(disponible, anaNodo->dato, anaPase) == 0);
     assert(reservarLibro(descatalogado, anaNodo->dato, anaPase) == 0);
     assert(reservarLibro(preventa, anaNodo->dato, paseCarla) == 0);
@@ -284,6 +315,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(buscarReserva(preventa, 103) != NULL);
     assert(tienda.recaudacion == 1000);
 
+    /* Comprueba ventas, stock, estados, recaudacion y limites numericos. */
     assert(modificarPrecio(sala->raiz, 10, 1200) == 1);
     assert(modificarPrecio(sala->raiz, 999, 1200) == 0);
     assert(modificarPrecio(sala->raiz, 10, -1) == 0);
@@ -315,6 +347,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(recibirDespacho(sala->raiz, 30, 1) == 0);
     assert(recibirDespacho(sala->raiz, 999, 1) == 0);
 
+    /* Al descatalogar, la prueba verifica que las reservas se cancelen y cuenten. */
     assert(reservarLibro(preventaDescatalogar, anaNodo->dato, anaPase) == 1);
     {
         int reservasCanceladas = -1;
@@ -330,6 +363,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(reservarLibro(preventaDescatalogar, anaNodo->dato, anaPase) == 0);
     assert(tienda.recaudacion == 4700);
 
+    /* Al eliminar un cliente se quitan las referencias activas a sus datos. */
     paseExtraAna = crearPasePrueba(1, 509, 1, tienda.fecha, "12:00");
     assert(paseExtraAna != NULL);
     assert(registrarPaseCliente(&tienda, 101, paseExtraAna) == 1);
@@ -342,6 +376,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 3);
     assert(eliminarCliente(&tienda, 999) == 0);
 
+    /* El cierre rechaza lo pendiente y conserva clientes, libros y reservas. */
     pasePendiente = crearPasePrueba(1, 510, 1, tienda.fecha, "12:00");
     assert(pasePendiente != NULL);
     assert(registrarPaseCliente(&tienda, 102, pasePendiente) == 1);
@@ -372,6 +407,7 @@ static void probarFlujoCompletoDeJornada(void) {
 
     puts("Flujo integrado: ingreso, prioridad, reingreso, libros, reservas y cierre OK.");
 
+    /* Inicia una nueva jornada con los mismos clientes y sin pases anteriores. */
     tienda.fecha = "01/03/2024";
     assert(configurarControlAcceso(&tienda) == 1);
     paseNuevoDia = crearPasePrueba(1, 502, 1, tienda.fecha, "08:00");
@@ -393,7 +429,12 @@ static void probarFlujoCompletoDeJornada(void) {
     free(sala);
 }
 
+/*
+ * Ejecuta todas las pruebas de validacion, capacidad y flujo integrado.
+ * Retorna cero si cada asercion del conjunto se cumple.
+ */
 int main(void) {
+    /* Ejecuta primero validaciones puntuales y luego el escenario integrado. */
     probarFechasHorasYConfiguracion();
     probarLimitePasesPorCliente();
     probarFlujoCompletoDeJornada();

@@ -15,6 +15,7 @@
 struct Reserva *crearReserva(struct Cliente *reservador, int tipoPase) {
     struct Reserva *nuevaReserva;
 
+    /* La reserva solo referencia al cliente; la vida del cliente se administra aparte. */
     if (reservador == NULL) {
         return NULL;
     }
@@ -47,6 +48,7 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
         return NULL;
     }
 
+    /* Inicializa el enlace para que el nodo pueda insertarse en una cola vacia. */
     nuevoNodo->dato = dato;
     nuevoNodo->sig = NULL;
     return nuevoNodo;
@@ -64,6 +66,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
     int esPaseDelCliente = 0;
     int i;
 
+    /* Valida el estado del libro, la credencial y que no exista otra reserva. */
     if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
         pase == NULL || libro->disponibilidad != 3 ||
         (pase->estado != 1 && pase->estado != 3) ||
@@ -72,6 +75,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
         return 0;
     }
 
+    /* La identidad del pase se verifica por referencia dentro del arreglo del cliente. */
     for (i = 0; i < MAXPASES; i++) {
         if (cliente->pases[i] == pase) {
             esPaseDelCliente = 1;
@@ -82,6 +86,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
         return 0;
     }
 
+    /* Crea los recursos por etapas y revierte lo anterior si falla una asignacion. */
     reserva = crearReserva(cliente, pase->tipoPase);
     if (reserva == NULL) {
         return 0;
@@ -111,6 +116,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
 int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
     struct NodoReserva *rec;
 
+    /* No acepta nodos incompletos, ya enlazados ni reservas fuera de preventa. */
     if (libro == NULL || nuevo == NULL || nuevo->dato == NULL ||
         nuevo->dato->reservador == NULL || libro->disponibilidad != 3 ||
         nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 ||
@@ -118,6 +124,7 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
         return 0;
     }
 
+    /* Evita insertar el mismo nodo o duplicar una reserva del mismo cliente. */
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         if (rec == nuevo ||
             (rec->dato != NULL && rec->dato->reservador != NULL &&
@@ -169,6 +176,7 @@ struct NodoReserva *desencolar(struct Libro *libro) {
     }
 
     /* se guarda el primero y se mueve head al nodo siguiente */
+    /* Retira head y separa el nodo para que quien llama lo pueda liberar. */
     aux = libro->headReserva;
     libro->headReserva = aux->sig;
 
@@ -188,6 +196,7 @@ int cantidadEnEspera(struct Libro *libro) {
         return 0;
     }
 
+    /* Cuenta nodos sin cambiar el orden ni los enlaces de la cola. */
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         cantidad++;
     }
@@ -209,6 +218,7 @@ void mostrarCola(struct Libro *libro) {
         return;
     }
 
+    /* Recorre la cola en el orden en que deben atenderse las reservas. */
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         printf("%d) %s", pos, rec->dato->reservador->nombre);
         if (rec->dato->tipoPase == 4) {
@@ -230,6 +240,7 @@ struct NodoReserva *buscarReserva(struct Libro *libro, int rut) {
         return NULL;
     }
 
+    /* Busca por RUT y tolera nodos incompletos sin desreferenciar sus datos. */
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         if (rec->dato != NULL && rec->dato->reservador != NULL &&
             rec->dato->reservador->rut == rut) {
@@ -253,6 +264,7 @@ int eliminarReserva(struct Libro *libro, int rut) {
         return 0;
     }
 
+    /* Localiza la reserva y conserva el nodo anterior para reconectar la cola. */
     rec = libro->headReserva;
     while (rec != NULL &&
         (rec->dato == NULL || rec->dato->reservador == NULL || rec->dato->reservador->rut != rut)) {
@@ -264,6 +276,7 @@ int eliminarReserva(struct Libro *libro, int rut) {
         return 0;
     }
 
+    /* Desenlaza el nodo desde la cabeza o desde su predecesor. */
     if (ant == NULL) {
         libro->headReserva = rec->sig;
     } else {
@@ -287,6 +300,7 @@ void vaciarCola(struct Libro *libro) {
         return;
     }
 
+    /* Guarda el siguiente nodo antes de liberar cada reserva y su envoltorio. */
     rec = libro->headReserva;
     while (rec != NULL) {
         sig = rec->sig;

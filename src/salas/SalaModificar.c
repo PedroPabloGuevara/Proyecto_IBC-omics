@@ -8,6 +8,7 @@
 -muestra las salas con su tematica, aforo aproximado y codigo
 */
 void mostrarTodasSalas(struct NodoSala *headSalas) {
+    /* La lista se recorre sin alterar enlaces ni transferir propiedad. */
     while (headSalas != NULL) {
         printf("nombre : %s aforo aproximado %d codigo de sala %d\n",
                headSalas->dato->tematica, headSalas->dato->aforoAprox,
@@ -31,6 +32,7 @@ int modificarSala(struct NodoSala **headSalas, int codigo, int nuevoCodigo,
         return 0;
     }
 
+    /* Confirma que la sala exista y que el nuevo codigo no choque con otra. */
     sala = buscarSala(*headSalas, codigo);
     if (sala == NULL) {
         return 0;
@@ -41,6 +43,7 @@ int modificarSala(struct NodoSala **headSalas, int codigo, int nuevoCodigo,
         return 0;
     }
 
+    /* Reserva y copia el nombre antes de liberar el texto vigente. */
     copia = malloc(strlen(nuevoNombre) + 1);
     if (copia == NULL) {
         return 0;

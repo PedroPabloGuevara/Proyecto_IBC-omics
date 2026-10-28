@@ -50,6 +50,7 @@ int numeroDe(char *texto, int inicio, int fin) {
 -retorna 1 si es bisiesto y 0 en caso contrario
 */
 int esBisiesto(int anio) {
+    /* Aplica las excepciones de siglo del calendario gregoriano. */
     return anio % 400 == 0 || (anio % 4 == 0 && anio % 100 != 0);
 }
 

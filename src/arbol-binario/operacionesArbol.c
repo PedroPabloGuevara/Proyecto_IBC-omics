@@ -6,6 +6,7 @@
 #include <limits.h>
 
 struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
+    /* El sucesor minimo se encuentra siguiendo enlaces izquierdos. */
     while (raiz->izq != NULL) {
         raiz = raiz->izq;
     }
@@ -49,6 +50,7 @@ int insertarLibro(struct NodoLibro **raiz, struct NodoLibro *nuevo) {
 */
 
 int existeLibro(struct NodoLibro *raiz, int codigo){
+    /* La busqueda devuelve NULL cuando el codigo no aparece en el arbol. */
     return buscarLibro(raiz, codigo) != NULL ;
 }
 
@@ -97,6 +99,7 @@ void mostrarLibrosPreorden(struct NodoLibro *raiz) {
 int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio) {
 
     struct NodoLibro *nodo ;
+    /* Busca primero para no modificar nada si el codigo no esta registrado. */
     nodo = buscarLibro(raiz, codigo) ;
 
     if (nodo == NULL) {
@@ -123,6 +126,7 @@ int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio) {
 int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
 
     struct NodoLibro *nodo ;
+    /* Resuelve el codigo antes de validar y aplicar el aumento de stock. */
     nodo = buscarLibro(raiz, codigo) ;
 
     if (nodo == NULL) {
@@ -163,6 +167,7 @@ int descatalogarLibro(struct NodoLibro *raiz, int codigo,
 
     struct NodoLibro *nodo ;
 
+    /* Si se solicito la salida, inicializarla evita dejar un valor antiguo. */
     if (reservasCanceladas != NULL) {
         *reservasCanceladas = 0;
     }

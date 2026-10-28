@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+ * Crea un cliente y reserva su nombre y arreglo de pases.
+ * Retorna NULL si faltan datos o no se puede reservar memoria.
+ */
 struct Cliente *crearCliente(char *nombre, int rut)
 {
     struct Cliente *nuevo;
@@ -22,6 +26,7 @@ struct Cliente *crearCliente(char *nombre, int rut)
         return NULL;
     }
 
+    /* El cliente conserva una copia propia del nombre recibido. */
     tam = strlen(nombre);
     nuevo->nombre = malloc((tam + 1) * sizeof(char));
     if (nuevo->nombre == NULL) {
@@ -37,6 +42,7 @@ struct Cliente *crearCliente(char *nombre, int rut)
         free(nuevo);
         return NULL;
     }
+    /* Inicializa todas las posiciones para que puedan consultarse con seguridad. */
     for(i=0; i<MAXPASES; i++)
     {
         nuevo->pases[i]=NULL;
@@ -46,7 +52,11 @@ struct Cliente *crearCliente(char *nombre, int rut)
     return nuevo;
 }
 
-struct NodoCliente *crearNodoCliente(struct Cliente *dato) /* para meter en lista */
+/*
+ * Envuelve un cliente en un nodo desligado para incorporarlo a la lista circular.
+ * El nodo no copia ni adquiere la propiedad del cliente.
+ */
+struct NodoCliente *crearNodoCliente(struct Cliente *dato)
 {
     struct NodoCliente *nuevo;
 
@@ -58,14 +68,20 @@ struct NodoCliente *crearNodoCliente(struct Cliente *dato) /* para meter en list
     if (nuevo == NULL) {
         return NULL;
     }
+    /* El enlace circular se establece despues, al insertar el nodo en la lista. */
     nuevo->dato=dato;
     nuevo->sig=NULL;
 
     return nuevo;
 }
 
+/*
+ * Busca un cliente por RUT recorriendo la lista circular desde su cabeza.
+ * Retorna el nodo encontrado o NULL si la lista esta vacia o no hay coincidencia.
+ */
 struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut) {
     struct NodoCliente *rec=head;
+    /* El do-while visita tambien la cabeza antes de comprobar el cierre del ciclo. */
     if(rec!=NULL)
     {
         do
@@ -79,6 +95,10 @@ struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut) {
     }
     return NULL;
 }
+/*
+ * Inserta un nodo al final de la lista circular y conserva su cabeza actual.
+ * Si la lista esta vacia, el nuevo nodo queda enlazado consigo mismo.
+ */
 void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
 {
     struct NodoCliente *rec;
@@ -87,6 +107,7 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
         return;
     }
 
+    /* En una lista vacia, el unico nodo es a la vez cabeza y cola. */
     if(*head==NULL)
     {
         *head=nuevo;
@@ -94,6 +115,7 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
     }
     else
     {
+        /* Busca el ultimo nodo: su siguiente enlace apunta a la cabeza. */
         rec=*head;
         while(rec->sig!=*head)
         {
@@ -104,7 +126,11 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
     }
 }
 
-int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 1 si lo agrego, 0 si el rut ya existia */
+/*
+ * Valida la unicidad del RUT, crea cliente y nodo, y los agrega a la lista.
+ * Retorna 1 si se agrega; ante error libera lo reservado y retorna 0.
+ */
+int agregarCliente(struct NodoCliente **head, char *nombre, int rut)
 {
     struct Cliente *cliente;
     struct NodoCliente *nodo;
@@ -113,10 +139,12 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
         return 0;
     }
 
+    /* Evita insertar un segundo cliente con el mismo identificador. */
     if (buscarCliente(*head, rut)!=NULL) {
         return 0;
     }
 
+    /* Construye primero los objetos para no cambiar la lista ante un fallo. */
     cliente = crearCliente(nombre, rut);
     if (cliente == NULL) {
         return 0;
@@ -216,6 +244,7 @@ void liberarPasesClientes(struct NodoCliente *head) {
         return;
     }
 
+    /* La lista puede ser circular: termina al volver al nodo inicial. */
     do {
         if (actual->dato != NULL && actual->dato->pases != NULL) {
             for (i = 0; i < MAXPASES; i++) {
@@ -240,6 +269,7 @@ int eliminarReservasClienteArbol(struct NodoLibro *raiz, int rut) {
         return 0;
     }
 
+    /* Recorre ambos subarboles y suma la reserva que pudiera estar en este libro. */
     eliminadas = eliminarReservasClienteArbol(raiz->izq, rut);
     eliminadas += eliminarReserva(raiz->dato, rut);
     eliminadas += eliminarReservasClienteArbol(raiz->der, rut);
@@ -262,6 +292,7 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
         return 0;
     }
 
+    /* Obtiene el nodo antes de retirar referencias que apuntan a su cliente. */
     actual = buscarCliente(tienda->headClientes, rut);
     if (actual == NULL || actual->dato == NULL) {
         return 0;
@@ -311,7 +342,13 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     return 1;
 }
 
-int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) /* 1: modificado, 0: no encontrado o nombre invalido, -1: RUT duplicado, -2: memoria insuficiente */
+/*
+ * Actualiza el nombre y el RUT de un cliente existente.
+ * Retorna 1 al modificar, 0 por datos o cliente invalidos, -1 por RUT repetido
+ * y -2 si no se pudo reservar memoria para copiar el nombre.
+ */
+int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre,
+                     int nuevoRut)
 {
     struct NodoCliente *nodo;
     int tam;
@@ -321,6 +358,7 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
         return 0;
     }
 
+    /* Valida el cliente y el nuevo identificador antes de reemplazar sus datos. */
     nodo=buscarCliente(head, rut);
     if(nodo==NULL)
     {
@@ -333,6 +371,7 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
     }
 
     /* reservar memoria para nombre y copiar */
+    /* Copia antes de liberar el nombre anterior para mantener el estado ante error. */
     tam = strlen(nuevoNombre);
     copia = malloc((tam + 1) * sizeof(char));
     if (copia == NULL) {
@@ -346,7 +385,11 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
     return 1;
 }
 
-void listarClientes(struct NodoCliente *head) /* mostrar clientes */
+/*
+ * Imprime los clientes en el orden de la lista circular.
+ * Si no hay clientes, informa que la lista esta vacia.
+ */
+void listarClientes(struct NodoCliente *head)
 {
     struct NodoCliente *rec=head;
     int cantidad=0;
@@ -357,6 +400,7 @@ void listarClientes(struct NodoCliente *head) /* mostrar clientes */
     }
     else
     {
+        /* La condicion de vuelta a head evita recorrer dos veces la lista circular. */
         do
         {
             cantidad++;
