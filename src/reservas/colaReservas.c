@@ -52,14 +52,14 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
 
 /*
 -registra una reserva para un cliente en la lista del libro
--permite reservar aunque no haya stock, salvo que el libro este descatalogado
+-solo permite reservar libros en preventa (disponibilidad 3)
 -retorna 1 si se agrego y 0 si la reserva no fue valida o falto memoria
 */
 int reservarLibro(struct Libro *libro, struct Cliente *cliente, int tipoPase) {
     struct Reserva *reserva;
     struct NodoReserva *nodo;
 
-    if (libro == NULL || cliente == NULL || libro->disponibilidad == 4 ||
+    if (libro == NULL || cliente == NULL || libro->disponibilidad != 3 ||
         tipoPase < 1 || tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
         return 0;
@@ -91,7 +91,7 @@ void encolar(struct Libro *libro, struct NodoReserva *nuevo) {
     struct NodoReserva *rec;
 
     if (libro == NULL || nuevo == NULL || nuevo->dato == NULL ||
-        nuevo->dato->reservador == NULL || libro->disponibilidad == 4 ||
+        nuevo->dato->reservador == NULL || libro->disponibilidad != 3 ||
         nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 ||
         nuevo->sig != NULL) {
         return;

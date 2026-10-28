@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
     while (raiz->izq != NULL) {
@@ -128,7 +129,8 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
         return 0 ; /*no se encontro el libro*/
     }
 
-    if (cantidad <= 0) {
+    if (cantidad <= 0 || nodo->dato->ejemplaresDisponibles < 0 ||
+        nodo->dato->ejemplaresDisponibles > INT_MAX - cantidad) {
         return 0 ; /*cantidad invalida*/
     }
 
@@ -138,8 +140,10 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
 
     nodo->dato->ejemplaresDisponibles += cantidad ;
 
-    if (nodo->dato->disponibilidad == 2) {
-        nodo->dato->disponibilidad = 1 ; /*vuelve a haber stock: disponible (1)*/
+    if (nodo->dato->disponibilidad == 2 ||
+        nodo->dato->disponibilidad == 3) {
+        /* Al llegar stock, reactiva agotados y libros que estaban en preventa. */
+        nodo->dato->disponibilidad = 1 ;
     }
 
     return 1 ; /*despacho registrado*/

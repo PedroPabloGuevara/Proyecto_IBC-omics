@@ -83,7 +83,6 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
     int actual;
     int apertura;
     int cierre;
-    int inicioPase;
 
     inicializarResultadoFila(resultado);
     if (tienda == NULL || tienda->filaEntrada == NULL ||
@@ -120,8 +119,7 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
         nodo = tienda->filaEntrada->head;
         cliente = buscarClientePorPaseFila(tienda, nodo->paseVigente);
         if (cliente == NULL ||
-            !validarSolicitudFila(tienda, cliente, nodo->paseVigente,
-                                  horaActual)) {
+            !validarSolicitudFila(tienda, cliente, nodo->paseVigente, horaActual)) {
             nodo = desencolarFila(tienda->filaEntrada);
             free(nodo);
             if (resultado != NULL) {
@@ -130,21 +128,44 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
             continue;
         }
 
-        if (!validarHoraFila(nodo->paseVigente->hora, &inicioPase)) {
-            nodo = desencolarFila(tienda->filaEntrada);
-            free(nodo);
-            if (resultado != NULL) {
-                resultado->rechazados++;
+        /*
+         * Solo el primer ingreso crea el registro diario. La venta ya sumo
+         * el dinero; los reingresos tampoco vuelven a contar esta entrada.
+         */
+        if (nodo->paseVigente->estado == 1) {
+            struct Pase *registro;
+
+            if (tienda->filaPasesDeldia == NULL) {
+                tienda->filaPasesDeldia = crearPasesDelDia();
+                if (tienda->filaPasesDeldia == NULL) {
+                    if (resultado != NULL) {
+                        resultado->esperando =
+                            cantidadEnFila(tienda->filaEntrada);
+                    }
+                    return 0;
+                }
             }
-            continue;
-        }
-        if (actual < inicioPase) {
-            /* La hora del primer pase aun no llega; los siguientes quedan en espera. */
-            break;
+
+            /* El registro es una copia: sobrevive si se elimina al cliente. */
+            registro = crearPase(nodo->paseVigente->tipoPase,
+                                 nodo->paseVigente->codigo,
+                                 nodo->paseVigente->valor, 3,
+                                 nodo->paseVigente->fecha,
+                                 nodo->paseVigente->hora);
+            if (registro == NULL ||
+                !agregarPase(tienda->filaPasesDeldia, registro)) {
+                liberarPase(registro);
+                if (resultado != NULL) {
+                    resultado->esperando =
+                        cantidadEnFila(tienda->filaEntrada);
+                }
+                return 0;
+            }
+
+            /* El pase se marca usado solo despues de guardarlo correctamente. */
+            nodo->paseVigente->estado = 3;
         }
 
-        /* El estado 3 identifica el pase como utilizado segun el struct original. */
-        nodo->paseVigente->estado = 3;
         nodo = desencolarFila(tienda->filaEntrada);
         free(nodo);
         if (resultado != NULL) {

@@ -35,6 +35,7 @@ int registrarVenta(struct Tienda *tienda, struct Libro *libro,
                    int cantidad, int rut, int tieneComprador) {
     int unidadesVendidas;
     int ingreso;
+    int reservasPendientes;
 
     /* Rechaza datos invalidos, libros descatalogados o falta de stock. */
     if (tienda == NULL || libro == NULL || cantidad <= 0 ||
@@ -44,10 +45,22 @@ int registrarVenta(struct Tienda *tienda, struct Libro *libro,
         return 0;
     }
 
+    reservasPendientes = libro->headReserva != NULL;
+    if (reservasPendientes &&
+        (!tieneComprador || libro->headReserva->dato == NULL ||
+         libro->headReserva->dato->reservador == NULL ||
+         libro->headReserva->dato->reservador->rut != rut)) {
+        return 0;
+    }
+
     /* Ajusta la solicitud a la cantidad de ejemplares disponibles. */
     unidadesVendidas = cantidad;
     if (unidadesVendidas > libro->ejemplaresDisponibles) {
         unidadesVendidas = libro->ejemplaresDisponibles;
+    }
+    if (reservasPendientes && unidadesVendidas > 1) {
+        /* Cada reserva corresponde a un ejemplar; atiende la cola en orden. */
+        unidadesVendidas = 1;
     }
 
     /* Evita que el producto o el acumulado excedan el rango de int. */

@@ -127,9 +127,10 @@ int agregarPase(struct pasesDelDia *lista, struct Pase *pase) {
     struct NodoPase *rec;
     struct NodoPase *nuevo;
 
-    if (lista == NULL || pase == NULL || pase->tipoPase < 1 ||
-        pase->tipoPase > 4 || pase->estado < 1 || pase->estado > 4 ||
-        pase->valor < 0 || buscarPase(lista, pase->codigo) != NULL) {
+    if (lista == NULL || pase == NULL || pase->codigo <= 0 ||
+        pase->tipoPase < 1 || pase->tipoPase > 4 || pase->estado != 3 ||
+        pase->fecha == NULL || pase->hora == NULL ||
+        buscarPase(lista, pase->codigo) != NULL) {
         return 0;
     }
 
@@ -152,78 +153,8 @@ int agregarPase(struct pasesDelDia *lista, struct Pase *pase) {
 }
 
 /*
--quita un pase de la lista y lo retorna sin liberar el pase
--libera solamente el nodo para permitir que el pase siga en uso por clientes
--retorna NULL si la lista o el codigo no existen
-*/
-struct Pase *quitarPase(struct pasesDelDia *lista, int codigo) {
-    struct NodoPase *actual;
-    struct NodoPase *anterior = NULL;
-    struct Pase *pase;
-
-    if (lista == NULL) {
-        return NULL;
-    }
-
-    /* Busca el nodo y conserva su anterior para poder desenlazarlo. */
-    actual = lista->head;
-    while (actual != NULL && actual->paseVigente->codigo != codigo) {
-        anterior = actual;
-        actual = actual->sig;
-    }
-
-    if (actual == NULL) {
-        return NULL;
-    }
-
-    /* Actualiza el inicio o el enlace previo, segun donde estaba el pase. */
-    if (anterior == NULL) {
-        lista->head = actual->sig;
-    } else {
-        anterior->sig = actual->sig;
-    }
-
-    pase = actual->paseVigente;
-    free(actual);
-    return pase;
-}
-
-/*
--elimina un pase de la lista y libera su nodo, pero no el pase
--retorna 1 si se elimino, 0 si el codigo no existe, -1 si la lista esta vacia
-*/
-int eliminarPase(struct pasesDelDia *lista, int codigo) {
-    if (lista == NULL || lista->head == NULL) {
-        return -1;
-    }
-    /* quitarPase libera el nodo y devuelve el pase sin liberarlo. */
-    return quitarPase(lista, codigo) != NULL;
-}
-
-/*
--modifica el tipo y el valor del pase, sin cambiar codigo ni estado
--retorna 1 si se modifico, 0 si no existe y -1 si los datos no son validos
-*/
-int modificarPase(struct pasesDelDia *lista, int codigo, int nuevoTipo,
-                  int nuevoValor) {
-    struct NodoPase *nodo = buscarPase(lista, codigo);
-
-    if (nodo == NULL) {
-        return 0;
-    }
-    if (nuevoTipo < 1 || nuevoTipo > 4 || nuevoValor < 0) {
-        return -1;
-    }
-
-    /* Solo actualiza los campos permitidos; codigo y estado se conservan. */
-    nodo->paseVigente->tipoPase = nuevoTipo;
-    nodo->paseVigente->valor = nuevoValor;
-    return 1;
-}
-
-/*
 -muestra los pases en el orden en que estan en la lista
--indica codigo, tipo, valor, estado, fecha y hora
+-indica codigo, tipo, estado, fecha y hora
 */
 void listarPases(struct pasesDelDia *lista) {
     struct NodoPase *rec;
@@ -236,10 +167,10 @@ void listarPases(struct pasesDelDia *lista) {
     /* Muestra cada pase sin alterar los enlaces de la lista. */
     rec = lista->head;
     while (rec != NULL) {
-        printf("Codigo: %d, Tipo: %d, Valor: %d, Estado: %d, Fecha: %s, Hora: %s\n",
+        printf("Codigo: %d, Tipo: %d, Estado: %d, Fecha: %s, Hora: %s\n",
                rec->paseVigente->codigo, rec->paseVigente->tipoPase,
-               rec->paseVigente->valor, rec->paseVigente->estado,
-               rec->paseVigente->fecha, rec->paseVigente->hora);
+               rec->paseVigente->estado, rec->paseVigente->fecha,
+               rec->paseVigente->hora);
         rec = rec->sig;
     }
 }
@@ -275,4 +206,26 @@ int paseValidoHoy(struct Pase *pase, char *fecha) {
     /* Comprueba la vigencia comparando las fechas almacenadas como texto. */
     return pase != NULL && pase->fecha != NULL && fecha != NULL &&
            strcmp(pase->fecha, fecha) == 0;
+}
+
+/*
+-libera todos los pases y nodos de la lista, y finalmente la lista
+-la lista debe ser propietaria de los pases que contiene
+-no hace nada si recibe NULL
+*/
+void liberarPasesDelDia(struct pasesDelDia *lista) {
+    struct NodoPase *nodo;
+    struct NodoPase *siguiente;
+
+    if (lista == NULL) {
+        return;
+    }
+
+    /* Libera cada pase de la lista antes de liberar su nodo. */
+    for (nodo = lista->head; nodo != NULL; nodo = siguiente) {
+        siguiente = nodo->sig;
+        liberarPase(nodo->paseVigente);
+        free(nodo);
+    }
+    free(lista);
 }

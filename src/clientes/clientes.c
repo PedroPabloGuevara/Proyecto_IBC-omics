@@ -1,5 +1,8 @@
 #include "../../include/clientes.h"
+#include "../../include/entrada.h"
+#include "../../include/entradaInterna.h"
 #include "../../include/pases.h"
+#include "../../include/reservas.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,57 +133,181 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     enlazarCliente(head, nodo);
     return 1;
 }
-/*tiene anterior era circular simple*/
-int eliminarCliente(struct NodoCliente **head, int rut){
-    struct NodoCliente *act, *ant; /* actual y anterior */
+
+/*
+-registra en un cliente un pase externo activo, sin venderlo ni sumar dinero
+-valida su titularidad, codigo, fecha y horario antes de guardar el puntero
+-si retorna 1, el cliente pasa a ser propietario del pase; si retorna 0, no
+-retorna 1 si lo asocia o 0 si el pase, el cliente o los datos no son validos
+*/
+int registrarPaseCliente(struct Tienda *tienda, int rut, struct Pase *pase) {
+    struct NodoCliente *nodoCliente;
+    struct NodoCliente *iterCliente;
+    struct NodoPase *nodoRegistro;
+    int apertura;
+    int cierre;
+    int posicionLibre = -1;
+    int cantidad = 0;
     int i;
 
-    if(head == NULL || *head==NULL){
+    if (tienda == NULL || pase == NULL || pase->fecha == NULL ||
+        pase->codigo <= 0 ||
+        pase->tipoPase < 1 || pase->tipoPase > 4 || pase->estado != 1 ||
+        !validarFechaFila(tienda->fecha) ||
+        !paseValidoHoy(pase, tienda->fecha) ||
+        !validarHoraFila(tienda->hora_inicio, &apertura) ||
+        !validarHoraFila(tienda->hora_termino, &cierre) ||
+        cierre <= apertura) {
         return 0;
     }
-    ant=*head;
-    while(ant->sig!=*head){
-        ant=ant->sig;
+
+    nodoCliente = buscarCliente(tienda->headClientes, rut);
+    if (nodoCliente == NULL || nodoCliente->dato == NULL ||
+        nodoCliente->dato->pases == NULL) {
+        return 0;
     }
-    act=*head;
-    do /* buscar el nodo a eliminar */{
-        if(act->dato->rut==rut)
-        {
-            break;
+
+    /* No permite reutilizar un codigo ya ingresado durante la jornada. */
+    nodoRegistro = buscarPase(tienda->filaPasesDeldia, pase->codigo);
+    if (nodoRegistro != NULL) {
+        return 0;
+    }
+
+    /* Busca una posicion libre y evita duplicar codigos entre clientes. */
+    iterCliente = tienda->headClientes;
+    do {
+        if (iterCliente->dato != NULL && iterCliente->dato->pases != NULL) {
+            for (i = 0; i < MAXPASES; i++) {
+                struct Pase *existente = iterCliente->dato->pases[i];
+
+                if (iterCliente == nodoCliente && existente == NULL &&
+                    posicionLibre < 0) {
+                    posicionLibre = i;
+                }
+                if (existente != NULL && existente->codigo == pase->codigo) {
+                    return 0;
+                }
+                if (iterCliente == nodoCliente && existente != NULL) {
+                    cantidad++;
+                }
+            }
         }
-        ant=act;
-        act=act->sig;
-    }while(act!=*head);
+        iterCliente = iterCliente->sig;
+    } while (iterCliente != NULL && iterCliente != tienda->headClientes);
 
-    if(act->dato->rut!=rut)
-    {
-        return 0; /* no se encontro */
+    if (posicionLibre < 0) {
+        return 0;
     }
 
-    if(act->sig==act) /* por si es el unico nodo -> lista queda vacia */
-    {
-        *head=NULL;
-    }
-    else
-    {
-        ant->sig=act->sig;
+    nodoCliente->dato->pases[posicionLibre] = pase;
+    nodoCliente->dato->plibrepases = cantidad + 1;
+    return 1;
+}
 
-        if(act==*head) /* si eliminado era head, el head pasa al siguiente */
-        {
-            *head=act->sig;
+/*
+-libera las credenciales de todos los clientes y reinicia sus contadores
+-conserva los clientes y sus demas datos
+*/
+void liberarPasesClientes(struct NodoCliente *head) {
+    struct NodoCliente *actual = head;
+    int i;
+
+    if (head == NULL) {
+        return;
+    }
+
+    do {
+        if (actual->dato != NULL && actual->dato->pases != NULL) {
+            for (i = 0; i < MAXPASES; i++) {
+                liberarPase(actual->dato->pases[i]);
+                actual->dato->pases[i] = NULL;
+            }
+            actual->dato->plibrepases = 0;
         }
+        actual = actual->sig;
+    } while (actual != NULL && actual != head);
+}
+
+/*
+-elimina de cada libro las reservas que apuntan al rut indicado
+-recorre recursivamente el arbol binario y libera solo reservas y nodos
+-retorna la cantidad de reservas eliminadas
+*/
+int eliminarReservasClienteArbol(struct NodoLibro *raiz, int rut) {
+    int eliminadas;
+
+    if (raiz == NULL) {
+        return 0;
     }
 
-    if (act->dato->pases != NULL) {
+    eliminadas = eliminarReservasClienteArbol(raiz->izq, rut);
+    eliminadas += eliminarReserva(raiz->dato, rut);
+    eliminadas += eliminarReservasClienteArbol(raiz->der, rut);
+    return eliminadas;
+}
+
+/*
+-elimina un cliente de la tienda sin dejar referencias a sus datos liberados
+-retira primero sus pases de la fila y sus reservas de todos los libros
+-conserva los registros diarios de ingreso, que guardan copias independientes
+-retorna 1 si se elimino el cliente y 0 si no existe o la tienda es NULL
+*/
+int eliminarCliente(struct Tienda *tienda, int rut) {
+    struct NodoCliente *actual;
+    struct NodoCliente *anterior;
+    struct NodoSala *nodoSala;
+    int i;
+
+    if (tienda == NULL || tienda->headClientes == NULL) {
+        return 0;
+    }
+
+    actual = buscarCliente(tienda->headClientes, rut);
+    if (actual == NULL || actual->dato == NULL) {
+        return 0;
+    }
+
+    /* Quita primero la fila, cuyos nodos referencian los pases del cliente. */
+    if (tienda->filaEntrada != NULL && actual->dato->pases != NULL) {
         for (i = 0; i < MAXPASES; i++) {
-            liberarPase(act->dato->pases[i]);
+            if (actual->dato->pases[i] != NULL) {
+                quitarDeFila(tienda->filaEntrada, actual->dato->pases[i]->codigo);
+            }
         }
     }
 
-    free(act->dato->nombre);
-    free(act->dato->pases);
-    free(act->dato);
-    free(act);
+    /* Las reservas guardan un puntero al cliente y deben desaparecer primero. */
+    for (nodoSala = tienda->headSalas; nodoSala != NULL;
+         nodoSala = nodoSala->sig) {
+        if (nodoSala->dato != NULL) {
+            eliminarReservasClienteArbol(nodoSala->dato->raiz, rut);
+        }
+    }
+
+    /* Desenlaza el cliente de la lista circular antes de liberar sus datos. */
+    if (actual->sig == actual) {
+        tienda->headClientes = NULL;
+    } else {
+        anterior = actual;
+        while (anterior->sig != actual) {
+            anterior = anterior->sig;
+        }
+        anterior->sig = actual->sig;
+        if (tienda->headClientes == actual) {
+            tienda->headClientes = actual->sig;
+        }
+    }
+
+    /* El registro diario posee copias de los pases y permanece intacto. */
+    if (actual->dato->pases != NULL) {
+        for (i = 0; i < MAXPASES; i++) {
+            liberarPase(actual->dato->pases[i]);
+        }
+    }
+    free(actual->dato->nombre);
+    free(actual->dato->pases);
+    free(actual->dato);
+    free(actual);
     return 1;
 }
 

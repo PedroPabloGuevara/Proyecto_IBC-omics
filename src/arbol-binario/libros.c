@@ -28,7 +28,15 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
     char *publicacion, int clasificacionEdad,
     int disponibilidad, char *genero, char *fechaPublicacion, int deColeccion) {
 
-    struct Libro *nuevoLibro = malloc(sizeof(*nuevoLibro));
+    struct Libro *nuevoLibro;
+
+    if (codigo <= 0 || nombre == NULL || precio < 0 || ejemplares < 0 ||
+        publicacion == NULL || genero == NULL || fechaPublicacion == NULL ||
+        disponibilidad < 1 || disponibilidad > 4) {
+        return NULL;
+    }
+
+    nuevoLibro = malloc(sizeof(*nuevoLibro));
     if (nuevoLibro == NULL) {
         return NULL;
     }

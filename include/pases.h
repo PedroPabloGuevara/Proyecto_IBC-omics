@@ -9,15 +9,11 @@ struct NodoPase *crearNodoPase(struct Pase *pase);
 struct pasesDelDia *crearPasesDelDia(void);
 struct NodoPase *buscarPase(struct pasesDelDia *lista, int codigo);
 int agregarPase(struct pasesDelDia *lista, struct Pase *pase);
-struct Pase *quitarPase(struct pasesDelDia *lista, int codigo);
-int eliminarPase(struct pasesDelDia *lista, int codigo);
 void liberarPase(struct Pase *pase);
-int modificarPase(struct pasesDelDia *lista, int codigo, int nuevoTipo,
-                  int nuevoValor);
 void listarPases(struct pasesDelDia *lista);
 int contarPasesPorEstado(struct pasesDelDia *lista, int estado);
 int paseValidoHoy(struct Pase *pase, char *fecha);
-int venderPasesDelDia(struct Tienda *tienda, int rut, int codigoTipo,
-                      int cantidad);
+/* Libera los pases y nodos que componen el registro diario de ingresos. */
+void liberarPasesDelDia(struct pasesDelDia *lista);
 
 #endif

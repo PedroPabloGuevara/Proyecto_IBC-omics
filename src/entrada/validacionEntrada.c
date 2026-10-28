@@ -1,5 +1,6 @@
 #include "../../include/entradaInterna.h"
 #include "../../include/clientes.h"
+#include "../../include/pases.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -167,31 +168,41 @@ struct Cliente *buscarClientePorPaseFila(struct Tienda *tienda,
 
 /*
 -valida que el pase pertenezca al cliente y coincida con fecha y horario
--solo permite pases activos mientras la tienda esta abierta
+-permite el primer ingreso activo o el reingreso de uno ya utilizado
+-rechaza pases anulados, vencidos o fuera de su intervalo horario
 -retorna 1 si la solicitud es valida y 0 si falla alguna comprobacion
 */
 int validarSolicitudFila(struct Tienda *tienda, struct Cliente *cliente,
                          struct Pase *pase, char *horaActual) {
+    struct NodoPase *registroIngreso;
     int actual;
-    int inicioPase;
     int apertura;
     int cierre;
 
-    /* Valida punteros, estado, fechas y formato de las horas involucradas. */
+    /* Valida fecha, titularidad y horario de la tienda; no usa la hora de compra. */
     if (tienda == NULL || cliente == NULL || pase == NULL ||
-        pase->fecha == NULL || pase->hora == NULL ||
-        pase->tipoPase < 1 || pase->tipoPase > 4 || pase->estado != 1 ||
+        pase->fecha == NULL ||
+        pase->tipoPase < 1 || pase->tipoPase > 4 ||
         !validarFechaFila(tienda->fecha) ||
         !validarHoraFila(horaActual, &actual) ||
         !validarHoraFila(tienda->hora_inicio, &apertura) ||
         !validarHoraFila(tienda->hora_termino, &cierre) ||
-        !validarHoraFila(pase->hora, &inicioPase) ||
-        cierre <= apertura || actual < inicioPase || actual >= cierre ||
-        inicioPase < apertura || inicioPase >= cierre ||
+        cierre <= apertura || actual >= cierre ||
         strcmp(pase->fecha, tienda->fecha) != 0 ||
         buscarClientePorPaseFila(tienda, pase) != cliente) {
         return 0;
     }
 
-    return 1;
+    registroIngreso = buscarPase(tienda->filaPasesDeldia, pase->codigo);
+
+    /* Un pase activo se admite por primera vez; uno usado debe estar registrado. */
+    if (pase->estado == 1) {
+        return registroIngreso == NULL;
+    }
+    if (pase->estado == 3) {
+        return registroIngreso != NULL;
+    }
+
+    /* Los pases anulados, vencidos o con estado desconocido no permiten entrada. */
+    return 0;
 }
