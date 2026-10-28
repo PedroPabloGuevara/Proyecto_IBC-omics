@@ -5,6 +5,7 @@ struct Pase {
     int tipoPase;
     int codigo;
     int valor;
+    /* Estado: 1 activo, 2 anulado, 3 utilizado, 4 vencido. */
     int estado;
     char *fecha;
     char *hora;
@@ -48,13 +49,6 @@ struct NodoReserva {
     struct NodoReserva *sig;
 };
 
-/* Cola enlazada: head es el proximo en atenderse, tail el ultimo y cantidad su total. */
-struct ColaReservas {
-    struct NodoReserva *head;
-    struct NodoReserva *tail;
-    int cantidad;
-};
-
 struct Libro {
     int codigo;
     char *nombre;
@@ -62,6 +56,7 @@ struct Libro {
     int ejemplaresDisponibles;
     char *publicacion;
     int clasificacionEdad;
+    /* Disponibilidad: 1 disponible, 2 agotado, 3 en preventa, 4 descatalogado. */
     int disponibilidad;
     char *genero;
     char *fechaPublicacion;
@@ -94,9 +89,9 @@ struct Tienda {
     struct Fila *filaEntrada;
     struct pasesDelDia *filaPasesDeldia;
     int recaudacion;
-    char *hora_inicio;
-    char *hora_termino;
-    char *fecha;
+    char *hora_inicio; /* Hora de apertura de la tienda. HH:MM*/
+    char *hora_termino; /* Hora de cierre de la tienda. HH:MM*/
+    char *fecha; /* Fecha del dia de operacion. DD/MM/AAAA */
 };
 
 #endif
