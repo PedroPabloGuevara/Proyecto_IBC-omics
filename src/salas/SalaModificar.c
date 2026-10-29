@@ -28,7 +28,8 @@ int modificarSala(struct NodoSala **headSalas, int codigo, int nuevoCodigo,
     struct NodoSala *salaConCodigo;
     char *copia;
 
-    if (headSalas == NULL || nuevoNombre == NULL) {
+    if (headSalas == NULL || nuevoNombre == NULL || nuevoNombre[0] == '\0' ||
+        nuevoCodigo <= 0 || nuevoAforo < 0) {
         return 0;
     }
 

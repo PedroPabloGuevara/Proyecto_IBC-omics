@@ -192,12 +192,7 @@ int descatalogarLibro(struct NodoLibro *raiz, int codigo,
     return 1 ; /*libro descatalogado*/
 }
 
-/*
--deja un libro desvinculado de sus datos, sin usar free
--vacia su cola de reservas y deja en NULL los 4 textos; el struct no se libera
--NO toca el nodo del arbol: eso lo hace eliminarLibro
-*/
-
+/* Libera reservas, textos y struct; el nodo del arbol se gestiona aparte. */
 void liberarLibro(struct Libro *libro) {
 
     /*si no hay libro, no hay nada que desvincular*/
@@ -206,17 +201,18 @@ void liberarLibro(struct Libro *libro) {
     }
 
     vaciarCola(libro);
-    libro->nombre = NULL ;
-    libro->publicacion = NULL ;
-    libro->genero = NULL ;
-    libro->fechaPublicacion = NULL ;
+    free(libro->nombre);
+    free(libro->publicacion);
+    free(libro->genero);
+    free(libro->fechaPublicacion);
+    free(libro);
 }
 
 /*
--elimina un libro del arbol segun su codigo y lo desvincula, sin usar free
--recibe la raiz por doble puntero porque puede cambiar (por ejemplo, al eliminar la raiz)
--sin hijos o con un hijo: el padre pasa a apuntar al hijo (o a NULL) y el nodo queda aislado con sus punteros en NULL
--con dos hijos: se intercambian los libros entre el nodo y su sucesor (menor del subarbol derecho) y se elimina el sucesor, que tiene a lo mas un hijo
+-elimina un libro del arbol segun su codigo y libera su memoria
+-recibe la raiz por doble puntero porque puede cambiar al eliminar la raiz
+-sin hijos o con un hijo, el padre pasa a apuntar al hijo restante
+-con dos hijos, reemplaza el libro con su sucesor y elimina el nodo sucesor
 -retorna 1 si se elimino, 0 si no existe un libro con ese codigo
 */
 
@@ -226,7 +222,7 @@ int eliminarLibro(struct NodoLibro **raiz, int codigo) {
     struct Libro *libro ;
 
     /*caso base: lugar vacio, el codigo no existe*/
-    if (*raiz == NULL) {
+    if (raiz == NULL || *raiz == NULL) {
         return 0 ;
     }
 
@@ -255,10 +251,8 @@ int eliminarLibro(struct NodoLibro **raiz, int codigo) {
         *raiz = aux->der ;
     }
 
-    /*el nodo sale aislado: lo que apuntaba queda en NULL (no se usa free)*/
-    aux->izq = NULL ;
-    aux->der = NULL ;
-    liberarLibro(aux->dato) ;   /*vacia las reservas y deja en NULL los textos del libro*/
-    aux->dato = NULL ;
+    /* Libera los datos del libro y luego el nodo que salio del arbol. */
+    liberarLibro(aux->dato);
+    free(aux);
     return 1 ;
 }

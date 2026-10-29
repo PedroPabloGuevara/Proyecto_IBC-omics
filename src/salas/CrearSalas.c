@@ -11,7 +11,8 @@ struct SalaTematica *crearSala(char *tematica,int codigo,int aforoAprox){
 
     struct SalaTematica *nuevo;
 
-    if (tematica == NULL) {
+    if (tematica == NULL || tematica[0] == '\0' || codigo <= 0 ||
+        aforoAprox < 0) {
         return NULL;
     }
 

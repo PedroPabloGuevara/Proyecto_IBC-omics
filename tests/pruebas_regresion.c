@@ -93,10 +93,10 @@ void probarIngresosUnicosYReingresos(void) {
 }
 
 /*
- * Prueba que eliminar clientes retire las referencias de fila y reservas,
- * y que el cierre preserve datos duraderos de libros y clientes.
+ * Prueba que eliminar clientes respete referencias activas y que el cierre
+ * preserve datos duraderos de libros y clientes.
  */
-void probarEliminacionDeReferenciasYDespachos(void) {
+void probarProteccionesDeEliminacionYDespachos(void) {
     struct Tienda tienda = {0};
     struct SalaTematica *sala;
     struct NodoSala *nodoSala;
@@ -165,12 +165,21 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(registro != NULL);
     assert(agregarPase(tienda.filaPasesDeldia, registro) == 1);
 
-    /* Al borrar al cliente se retiran sus pases en fila y reservas. */
+    /* No permite eliminar mientras haya fila, ingresos, reservas o pases activos. */
+    assert(eliminarCliente(&tienda, 456) == -1);
+    assert(cantidadEnFila(tienda.filaEntrada) == 1);
+    assert(quitarDeFila(tienda.filaEntrada, ticket->codigo) == 1);
+    assert(eliminarCliente(&tienda, 456) == -2);
+    assert(eliminarPaseDelDia(tienda.filaPasesDeldia, ticket->codigo) == 1);
+    assert(eliminarCliente(&tienda, 456) == -3);
+    assert(eliminarReserva(libroDos, 456) == 1);
+    assert(eliminarCliente(&tienda, 456) == -4);
+    ticket->estado = 2;
     assert(eliminarCliente(&tienda, 456) == 1);
     assert(tienda.headClientes == NULL);
     assert(cantidadEnFila(tienda.filaEntrada) == 0);
     assert(buscarReserva(libroDos, 456) == NULL);
-    assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 1);
+    assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 0);
 
     /* Tras eliminar al primer cliente, otro puede reservar el libro en preventa. */
     assert(agregarCliente(&tienda.headClientes, "Carla", 789) == 1);
@@ -194,6 +203,7 @@ void probarEliminacionDeReferenciasYDespachos(void) {
     assert(tienda.filaPasesDeldia == NULL);
 
     /* Libera los objetos restantes creados por este escenario de regresion. */
+    assert(eliminarReserva(libroDos, 789) == 1);
     assert(eliminarCliente(&tienda, 789) == 1);
     while (sala->raiz != NULL) {
         assert(eliminarLibro(&sala->raiz, sala->raiz->dato->codigo) == 1);
@@ -330,6 +340,108 @@ static void probarCasosLimiteDeReservas(void) {
     liberarLibro(disponible);
 }
 
+static void probarVentaYCancelacionDeReserva(void) {
+    struct Tienda tienda = {0};
+    struct Cliente cliente = {0};
+    struct Pase pase = {3, 7001, 0, 1, "29/10/2026", "10:00"};
+    struct Pase *pases[MAXPASES] = {NULL};
+    struct Libro *libro;
+    struct NodoLibro *raiz;
+    struct NodoLibro *nodo;
+
+    cliente.rut = 700;
+    cliente.pases = pases;
+    pases[0] = &pase;
+    libro = crearLibro(701, "Reserva", 750, 0, "Edicion", 0, 3,
+                       "Prueba", "01/01/2020", 0);
+    assert(libro != NULL);
+    nodo = crearNodoLibro(libro);
+    assert(nodo != NULL);
+    raiz = NULL;
+    assert(insertarLibro(&raiz, nodo) == 1);
+
+    /* Caso 6: cancelar una preventa no inventa stock ni registra ingresos. */
+    assert(reservarLibro(libro, &cliente, &pase) == 1);
+    assert(eliminarReserva(libro, cliente.rut) == 1);
+    assert(cantidadEnEspera(libro) == 0);
+    assert(libro->ejemplaresDisponibles == 0);
+    assert(tienda.recaudacion == 0);
+
+    /* Caso 5: la venta solo atiende al titular que esta primero en la cola. */
+    assert(reservarLibro(libro, &cliente, &pase) == 1);
+    assert(recibirDespacho(raiz, libro->codigo, 1) == 1);
+    assert(venderEjemplares(&tienda, raiz, libro->codigo, 999, 1) == 0);
+    assert(cantidadEnEspera(libro) == 1);
+    assert(venderEjemplares(&tienda, raiz, libro->codigo, cliente.rut, 1) == 1);
+    assert(cantidadEnEspera(libro) == 0);
+    assert(libro->ejemplaresDisponibles == 0);
+    assert(libro->disponibilidad == 2);
+    assert(tienda.recaudacion == 750);
+
+    assert(eliminarLibro(&raiz, libro->codigo) == 1);
+    assert(raiz == NULL);
+}
+
+static void probarListaPases(void) {
+    struct ListaPases *lista = crearListaPases();
+    struct Pase *primero = crearPase(1, 7101, 100, 1,
+                                     "29/10/2026", "09:00");
+    struct Pase *segundo = crearPase(2, 7102, 200, 3,
+                                     "29/10/2026", "10:00");
+
+    assert(lista != NULL && primero != NULL && segundo != NULL);
+    assert(agregarPaseALista(lista, primero) == 1);
+    assert(agregarPaseALista(lista, segundo) == 1);
+    assert(agregarPaseALista(lista, primero) == 0);
+    assert(cantidadPasesEnLista(lista) == 2);
+    assert(buscarEnListaPases(lista, 7101)->paseVigente == primero);
+    assert(modificarPaseEnLista(lista, 7101, 4, 150) == 1);
+    assert(primero->tipoPase == 4 && primero->valor == 150);
+    assert(cambiarEstadoPaseEnLista(lista, 7102, 4) == 1);
+    assert(cambiarEstadoPaseEnLista(lista, 7102, 0) == -1);
+    assert(eliminarPaseDeLista(lista, 7101) == 1);
+    assert(lista->head->paseVigente == segundo && lista->tail == lista->head);
+    assert(eliminarPaseDeLista(lista, 7102) == 1);
+    assert(lista->head == NULL && lista->tail == NULL);
+    assert(cantidadPasesEnLista(lista) == 0);
+    liberarListaPases(lista);
+    liberarPase(primero);
+    liberarPase(segundo);
+}
+
+static void probarOperacionesPasesDelDia(void) {
+    struct pasesDelDia *lista = crearPasesDelDia();
+    struct Pase *pase = crearPase(2, 9001, 1500, 3,
+                                  "29/10/2026", "10:30");
+    struct NodoPase *nodo;
+
+    assert(lista != NULL && pase != NULL);
+    assert(agregarPaseDelDia(NULL, pase) == 0);
+    assert(agregarPaseDelDia(lista, pase) == 1);
+    assert(agregarPaseDelDia(lista, pase) == 0);
+
+    nodo = buscarPaseDelDia(lista, 9001);
+    assert(nodo != NULL && nodo->paseVigente != pase);
+    assert(nodo->paseVigente->tipoPase == 2);
+    assert(nodo->paseVigente->valor == 1500);
+    assert(modificarPaseDelDia(lista, 9001, 4, 2000) == 1);
+    assert(nodo->paseVigente->tipoPase == 4);
+    assert(nodo->paseVigente->valor == 2000);
+    assert(pase->tipoPase == 2 && pase->valor == 1500);
+    assert(modificarPaseDelDia(lista, 9001, 0, 2000) == -1);
+    assert(modificarPaseDelDia(lista, 9999, 1, 100) == 0);
+    assert(modificarPase(NULL, 1, 100) == 0);
+    assert(modificarPase(pase, 1, -1) == -1);
+    assert(eliminarPaseDelDia(lista, 9999) == 0);
+    assert(eliminarPaseDelDia(lista, 9001) == 1);
+    assert(buscarPaseDelDia(lista, 9001) == NULL);
+    assert(eliminarPaseDelDia(lista, 9001) == -1);
+
+    assert(agregarPaseDelDia(lista, pase) == 1);
+    liberarPase(pase);
+    liberarPasesDelDia(lista);
+}
+
 /*
  * Punto de entrada de las pruebas de regresion.
  * Retorna cero cuando todos los escenarios completan sus aserciones.
@@ -337,8 +449,11 @@ static void probarCasosLimiteDeReservas(void) {
 int main(void) {
     /* Ejecuta las pruebas regresivas de ingreso, referencias y reservas. */
     probarIngresosUnicosYReingresos();
-    probarEliminacionDeReferenciasYDespachos();
+    probarProteccionesDeEliminacionYDespachos();
     probarCasosLimiteDeReservas();
+    probarVentaYCancelacionDeReserva();
+    probarListaPases();
+    probarOperacionesPasesDelDia();
     puts("Pruebas de regresion completadas.");
     return 0;
 }

@@ -1,5 +1,6 @@
 #include "../../include/entrada.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 /*
@@ -26,7 +27,7 @@ struct Fila *crearFila(void) {
 -inserta los pases de tipo 4 antes de los demas, conservando el orden entre prioritarios;
 los otros tipos se agregan al final
 -retorna 1 si el nodo se agrego y 0 si no se pudo agregar
--si tiene exito, la fila enlaza el nodo; el pase sigue siendo externo
+-si tiene exito, la fila pasa a ser propietaria del nodo; el pase sigue siendo externo
 */
 int encolarFila(struct Fila *fila, struct NodoPase *nuevo) {
     struct NodoPase *rec;
@@ -135,7 +136,7 @@ struct NodoPase *buscarEnFila(struct Fila *fila, int codigoPase) {
 /*
 -busca y quita de la fila el pase con el codigo indicado
 -actualiza head o tail cuando elimina un extremo
--desenlaza el nodo y deja su sig en NULL; no libera memoria ni toca el pase
+-libera el nodo, pero no el pase al que apunta
 -retorna 1 si lo quito y 0 si la fila es NULL o no encontro el codigo
 */
 int quitarDeFila(struct Fila *fila, int codigoPase) {
@@ -165,15 +166,15 @@ int quitarDeFila(struct Fila *fila, int codigoPase) {
     if (fila->tail == rec) {
         fila->tail = anterior;
     }
-    /* El nodo sale aislado de la fila; el pase que apunta no se toca. */
-    rec->sig = NULL;
+    /* La fila es propietaria del nodo, pero no del pase referenciado. */
+    free(rec);
     return 1;
 }
 
 /*
--desenlaza todos los nodos de la fila, dejando el sig de cada uno en NULL
+-libera todos los nodos de la fila
 -deja head y tail en NULL para que la fila pueda reutilizarse
--no libera memoria ni toca los pases apuntados por los nodos
+-no libera los pases apuntados por los nodos
 -si fila es NULL, no realiza cambios
 */
 void vaciarFila(struct Fila *fila) {
@@ -184,24 +185,44 @@ void vaciarFila(struct Fila *fila) {
         return;
     }
 
-    /* Guarda el siguiente enlace antes de dejar en NULL el del nodo actual. */
+    /* Guarda el siguiente enlace antes de liberar cada nodo. */
     for (rec = fila->head; rec != NULL; rec = siguiente) {
         siguiente = rec->sig;
-        rec->sig = NULL;
+        free(rec);
     }
     fila->head = NULL;
     fila->tail = NULL;
 }
 
 /*
--deja la fila sin nodos para poder soltarla (no usa free)
--desenlaza todos sus nodos; la estructura Fila no se libera
+-libera los nodos y la estructura de la fila
 -no toca los pases apuntados por los nodos
 -si fila es NULL, no realiza ninguna accion
 */
 void liberarFila(struct Fila *fila) {
     if (fila != NULL) {
-        /* Solo desenlaza los nodos; quien tenia la fila decide si la suelta. */
         vaciarFila(fila);
+        free(fila);
+    }
+}
+
+/*
+-muestra los pases de la fila en el orden de atencion
+-no modifica la fila ni sus nodos
+*/
+void mostrarFila(struct Fila *fila) {
+    struct NodoPase *rec;
+
+    if (fila == NULL || fila->head == NULL) {
+        printf("La fila esta vacia.\n");
+        return;
+    }
+
+    for (rec = fila->head; rec != NULL; rec = rec->sig) {
+        if (rec->paseVigente != NULL) {
+            printf("Codigo: %d, Tipo: %d, Estado: %d\n",
+                   rec->paseVigente->codigo, rec->paseVigente->tipoPase,
+                   rec->paseVigente->estado);
+        }
     }
 }

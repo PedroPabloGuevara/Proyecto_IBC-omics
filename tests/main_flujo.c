@@ -95,6 +95,7 @@ static void probarFechasHorasYConfiguracion(void) {
 static void probarLimitePasesPorCliente(void) {
     struct Tienda tienda = {0};
     struct Pase *pase;
+    struct NodoCliente *nodo;
     int i;
 
     tienda.fecha = "29/02/2024";
@@ -119,6 +120,11 @@ static void probarLimitePasesPorCliente(void) {
     assert(pase != NULL);
     assert(registrarPaseCliente(&tienda, 902, pase) == 0);
     liberarPase(pase);
+    nodo = buscarCliente(tienda.headClientes, 902);
+    assert(nodo != NULL);
+    for (i = 0; i < MAXPASES; i++) {
+        nodo->dato->pases[i]->estado = 2;
+    }
     assert(eliminarCliente(&tienda, 902) == 1);
     assert(eliminarCliente(&tienda, 901) == 1);
 }
@@ -239,6 +245,9 @@ static void probarFlujoCompletoDeJornada(void) {
                             "no-es-hora", &resultado) == 0);
 
     /* Crea una sala de prueba y agrega libros en distintos estados. */
+    assert(crearSala("", 1, 10) == NULL);
+    assert(crearSala("Invalida", 0, 10) == NULL);
+    assert(crearSala("Invalida", 1, -1) == NULL);
     sala = crearSala("Narrativa", 7, 30);
     assert(sala != NULL);
     nodoSala = crearNodoSala(sala);
@@ -250,6 +259,8 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(buscarSala(tienda.headSalas, 7) == NULL);
     assert(buscarSala(tienda.headSalas, 8) == nodoSala);
     assert(modificarSala(&tienda.headSalas, 999, 9, 20, "No existe") == 0);
+    assert(modificarSala(&tienda.headSalas, 8, 0, 32, "Codigo invalido") == 0);
+    assert(modificarSala(&tienda.headSalas, 8, 9, -1, "Aforo invalido") == 0);
     disponible = agregarLibroPrueba(sala, 10, "Disponible", 1000, 3, 1);
     preventa = agregarLibroPrueba(sala, 20, "Preventa", 500, 0, 3);
     descatalogado =
@@ -363,15 +374,15 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(reservarLibro(preventaDescatalogar, anaNodo->dato, anaPase) == 0);
     assert(tienda.recaudacion == 4700);
 
-    /* Al eliminar un cliente se quitan las referencias activas a sus datos. */
+    /* No elimina al cliente mientras uno de sus pases ya ingreso. */
     paseExtraAna = crearPasePrueba(1, 509, 1, tienda.fecha, "12:00");
     assert(paseExtraAna != NULL);
     assert(registrarPaseCliente(&tienda, 101, paseExtraAna) == 1);
     assert(encolarFila(tienda.filaEntrada, crearNodoPase(paseExtraAna)) == 1);
     assert(buscarEnFila(tienda.filaEntrada, 509) != NULL);
-    assert(eliminarCliente(&tienda, 101) == 1);
-    assert(buscarCliente(tienda.headClientes, 101) == NULL);
-    assert(buscarEnFila(tienda.filaEntrada, 509) == NULL);
+    assert(eliminarCliente(&tienda, 101) == -2);
+    assert(buscarCliente(tienda.headClientes, 101) != NULL);
+    assert(buscarEnFila(tienda.filaEntrada, 509) != NULL);
     assert(buscarReserva(preventa, 101) == NULL);
     assert(contarPasesPorEstado(tienda.filaPasesDeldia, 3) == 3);
     assert(eliminarCliente(&tienda, 999) == 0);
@@ -382,7 +393,7 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(registrarPaseCliente(&tienda, 102, pasePendiente) == 1);
     assert(encolarFila(tienda.filaEntrada, crearNodoPase(pasePendiente)) == 1);
     assert(procesarFila(&tienda, "18:00", &resultado) == 1);
-    assert(resultado.rechazados == 1 && resultado.esperando == 0);
+    assert(resultado.rechazados == 2 && resultado.esperando == 0);
     assert(pasePendiente->estado == 1);
 
     assert(cerrarTienda(NULL, &recaudacionFinal) == 0);
@@ -420,7 +431,9 @@ static void probarFlujoCompletoDeJornada(void) {
     assert(betoNodo->dato->pases[0] == NULL);
 
     assert(eliminarCliente(&tienda, 102) == 1);
+    assert(eliminarReserva(preventa, 103) == 1);
     assert(eliminarCliente(&tienda, 103) == 1);
+    assert(eliminarCliente(&tienda, 101) == 1);
     while (sala->raiz != NULL) {
         assert(eliminarLibro(&sala->raiz, sala->raiz->dato->codigo) == 1);
     }

@@ -13,14 +13,17 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
                   struct Pase *pase);
 /* Retorna 1 si enlaza el nodo; si falla, el llamador conserva su propiedad. */
 int encolar(struct Libro *libro, struct NodoReserva *nuevo);
+/* Devuelve el nodo separado; quien llama debe liberar su reserva y el nodo. */
 struct NodoReserva *desencolar(struct Libro *libro);
 int cantidadEnEspera(struct Libro *libro);
 void mostrarCola(struct Libro *libro);
 struct NodoReserva *buscarReserva(struct Libro *libro, int rut);
+/* Quita y libera el nodo y su reserva, pero no el cliente. */
 int eliminarReserva(struct Libro *libro, int rut);
 /* Cambia el pase de una reserva existente y la reubica segun su nueva prioridad. */
 int modificarReserva(struct Libro *libro, struct Cliente *cliente,
                      struct Pase *nuevoPase);
+/* Libera los nodos y reservas de la cola, sin liberar los clientes. */
 void vaciarCola(struct Libro *libro);
 
 

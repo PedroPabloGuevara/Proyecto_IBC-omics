@@ -20,6 +20,11 @@ struct pasesDelDia {
     struct NodoPase *head;
 };
 
+struct ListaPases {
+    struct NodoPase *head;
+    struct NodoPase *tail;
+};
+
 struct Fila {
     struct NodoPase *head;
     struct NodoPase *tail;

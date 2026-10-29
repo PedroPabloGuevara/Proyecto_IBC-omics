@@ -12,9 +12,18 @@ Archivo: [src/main.c](./src/main.c)
 
 ### `main`
 
-Es el punto de entrada del ejecutable. Actualmente imprime un mensaje de inicio
-y termina con codigo `0`. Todavia no conecta los menus de clientes, pases,
-reservas, libros o salas ni ejecuta el cierre de una jornada.
+Es el punto de entrada del ejecutable. Valida la fecha y el horario de la
+jornada, configura el control de acceso y conecta los menus de clientes, pases,
+salas, libros, reservas e ingresos. Al terminar libera la fila y los pases del
+dia mediante `cerrarTienda`, muestra la recaudacion y libera los datos
+permanentes creados durante la ejecucion.
+
+La opcion 5 del menu de reservas registra la venta de una unidad reservada con
+`venderEjemplares`: solo permite atender al primer cliente de la cola, reduce
+el stock, actualiza la recaudacion y elimina la reserva. La opcion 6 cancela
+una reserva con `eliminarReserva`; no aumenta el stock ni modifica la
+recaudacion, ya que las reservas se hacen para libros en preventa, sin
+ejemplares disponibles.
 
 ## Libros y arbol binario
 
@@ -104,17 +113,18 @@ Retorna `1` si encontro y descatalogo el libro, o `0` si no existe.
 
 ### `liberarLibro`
 
-Libera la cola de reservas y los textos dinamicos del libro, y finalmente el
-struct. No libera el nodo del arbol que pudiera contenerlo. Acepta `NULL` sin
-hacer nada.
+Libera la cola de reservas, los cuatro textos dinamicos y el struct del libro.
+No modifica el nodo del arbol que pudiera contenerlo, que debe gestionarse por
+separado. Acepta `NULL` sin hacer nada.
 
 ### `eliminarLibro`
 
 Busca un codigo usando un puntero doble a la raiz, porque la raiz puede cambiar.
-Si el nodo no existe retorna `0`. Si tiene cero o un hijo, reemplaza el enlace
-del padre por el hijo restante y libera el libro y el nodo. Si tiene dos hijos,
-intercambia el contenido del libro con el sucesor minimo del subarbol derecho y
-elimina recursivamente el nodo sucesor. Retorna `1` al eliminar.
+Si el nodo no existe o la raiz recibida es invalida retorna `0`. Si tiene cero o
+un hijo, reemplaza el enlace del padre por el hijo restante y libera el nodo,
+el libro, sus textos y reservas. Si tiene dos hijos, intercambia el contenido
+del libro con el sucesor minimo del subarbol derecho y elimina recursivamente
+el nodo sucesor. Retorna `1` al eliminar.
 
 ## Ventas y recaudacion
 
@@ -216,11 +226,20 @@ eliminadas; una raiz nula aporta cero.
 
 ### `eliminarCliente`
 
-Busca el cliente y evita dejar referencias colgantes al eliminarlo. Primero
-retira de la fila los pases del cliente y borra sus reservas en los arboles de
-libros de las salas. Luego lo desenlaza de la lista circular, libera sus pases,
-nombre, arreglo de pases, struct y nodo. No borra las copias del registro diario.
-Retorna `1` si elimina al cliente y `0` si no existe o la tienda no es valida.
+Busca el cliente y solo lo elimina si no conserva pases en la fila o en el
+registro diario, reservas pendientes ni pases activos. Si puede eliminarlo,
+lo desenlaza de la lista circular y libera sus pases, nombre, arreglo, struct y
+nodo. No borra las copias independientes del registro diario. Retorna `1` si
+elimina al cliente, `0` si no existe o la tienda no es valida, `-1` si tiene un
+pase en la fila, `-2` si ya ingreso, `-3` si mantiene una reserva y `-4` si
+conserva pases activos.
+
+### `eliminarPase`
+
+Elimina el pase indicado del arreglo de un cliente y compacta las posiciones
+restantes. Rechaza el pase si esta en la fila o ya ingreso durante la jornada.
+Retorna `1` si lo elimina, `0` si el cliente o el pase no existen, `-1` si esta
+en fila y `-2` si ya ingreso.
 
 ### `modificarCliente`
 
@@ -251,8 +270,8 @@ configura y `0` si hay datos invalidos, ya estaba configurada o falla memoria.
 
 ### `liberarControlAcceso`
 
-Libera la fila de entrada y sus nodos, sin liberar los pases referenciados.
-Establece `tienda->filaEntrada` en `NULL`. Si la tienda es nula, no hace nada.
+Libera la fila y sus nodos, sin liberar los pases referenciados, y establece
+`tienda->filaEntrada` en `NULL`. Si la tienda es nula, no hace nada.
 
 ### `crearFila`
 
@@ -271,7 +290,7 @@ si no lo hace. La fila adquiere el nodo, pero no el pase apuntado.
 
 Retira el primer nodo y actualiza `head` y `tail`; ambos quedan en `NULL` al
 retirar el ultimo. Desliga el nodo antes de retornarlo. Retorna `NULL` si la fila
-no existe o esta vacia. El llamador libera el nodo, no el pase.
+no existe o esta vacia. El llamador debe liberar el nodo; el pase no se libera.
 
 ### `buscarEnFila`
 
@@ -281,18 +300,23 @@ el nodo o `NULL` si no existe.
 ### `quitarDeFila`
 
 Busca el pase por codigo, reconecta los enlaces y actualiza `head` o `tail` si
-eliminara un extremo. Libera solo el nodo. Retorna `1` si lo quita y `0` si la
-fila es nula o no encuentra el codigo.
+eliminara un extremo. Libera el nodo, pero no el pase apuntado. Retorna `1` si
+lo quita y `0` si la fila es nula o no encuentra el codigo.
 
 ### `vaciarFila`
 
-Libera todos los nodos y deja los extremos en `NULL`, pero conserva la
-estructura `Fila` y los pases referenciados. Acepta `NULL` sin cambios.
+Libera todos los nodos y deja los extremos en `NULL`, pero no libera los pases
+referenciados. Acepta `NULL` sin cambios.
 
 ### `liberarFila`
 
-Vacia primero los nodos con `vaciarFila` y luego libera la estructura de la
-fila. No libera los pases. Acepta `NULL`.
+Libera los nodos con `vaciarFila` y luego libera la estructura `Fila`; no
+libera los pases. Acepta `NULL`.
+
+### `mostrarFila`
+
+Imprime codigo, tipo y estado de cada pase en el orden de atencion, sin
+modificar la fila. Si la fila es nula o esta vacia, imprime un aviso.
 
 ### `cantidadEnFila`
 
@@ -374,6 +398,49 @@ no figura en el registro diario; uno utilizado es valido solo si ya figura.
 Rechaza anulados, vencidos y estados desconocidos. Retorna `1` si se puede
 procesar la solicitud y `0` si falla una condicion.
 
+## Administracion general de pases
+
+Archivo: [src/pases/listaPases.c](./src/pases/listaPases.c).
+
+`ListaPases` mantiene los pases en una lista enlazada FIFO. Los nodos guardan
+referencias a los pases, que siguen siendo propiedad de sus clientes.
+
+### `crearListaPases`
+
+Crea una lista vacia con `head` y `tail` en `NULL`. Retorna `NULL` si falla
+la reserva de memoria.
+
+### `buscarEnListaPases`
+
+Busca por codigo y retorna el nodo encontrado o `NULL` si no existe.
+
+### `agregarPaseALista`
+
+Agrega al final un pase con codigo positivo, tipo y estado entre `1..4`, valor
+no negativo, fecha y hora presentes, y codigo no repetido. Retorna `1` al
+agregar y `0` ante datos invalidos, duplicados o falta de memoria. No toma
+propiedad del pase.
+
+### `modificarPaseEnLista` y `cambiarEstadoPaseEnLista`
+
+Modifican tipo y valor, o estado, respectivamente. Retornan `1` al modificar,
+`0` si no existe el codigo y `-1` si el nuevo valor no es valido.
+
+### `eliminarPaseDeLista`
+
+Desenlaza el pase indicado y libera solo su nodo. Retorna `1` si lo encuentra
+y `0` si no existe. El pase sigue siendo propiedad del cliente.
+
+### `cantidadPasesEnLista` y `listarPasesEnLista`
+
+La primera cuenta los nodos; la segunda imprime los datos de cada pase en el
+orden de insercion. Una lista nula o vacia tiene cantidad cero.
+
+### `vaciarListaPases` y `liberarListaPases`
+
+La primera libera todos los nodos y deja la lista reutilizable; la segunda
+ademas libera la estructura. Ninguna libera los pases referenciados.
+
 ## Registro de pases diarios
 
 Archivo: [src/pases/pasesDelDia.c](./src/pases/pasesDelDia.c).
@@ -404,6 +471,11 @@ Retorna la lista vacia o `NULL` si falla memoria.
 Busca en la lista diaria un codigo de pase y retorna el nodo correspondiente.
 Retorna `NULL` si la lista no existe o no encuentra el codigo.
 
+### `buscarPaseDelDia`
+
+Nombre explicito para buscar un pase del registro diario por codigo. Retorna el
+nodo encontrado o `NULL` si la lista no existe o no contiene el codigo.
+
 ### `agregarPase`
 
 Agrega al final una referencia a un pase utilizado. Valida codigo positivo,
@@ -411,10 +483,35 @@ tipo entre `1..4`, estado utilizado, fecha y hora no nulas, y que no se repita
 el codigo. Crea un nodo nuevo; retorna `1` si lo enlaza y `0` si falla. Ante
 fallo, el pase sigue siendo propiedad del llamador.
 
+### `agregarPaseDelDia`
+
+Agrega una copia independiente de un pase utilizado al final del registro
+diario. La lista se hace responsable de liberar esa copia; el pase recibido
+continua perteneciendo al llamador. Rechaza duplicados, datos invalidos y fallos
+de memoria.
+
+### `modificarPase` y `modificarPaseDelDia`
+
+`modificarPase` cambia tipo y valor de un pase, preservando codigo, estado,
+fecha y hora. Retorna `0` si el pase es nulo y `-1` si el nuevo tipo o valor no
+son validos. `modificarPaseDelDia` busca el codigo y modifica la copia del
+registro diario; no altera el pase original del cliente. Retorna `0` si no
+existe el codigo.
+
+### `eliminarPaseDelDia`
+
+Quita el pase indicado por codigo y libera su nodo y la copia del pase que
+pertenece al registro diario. Retorna `1` si elimina, `0` si la lista es nula o
+no encuentra el codigo y `-1` si la lista esta vacia.
+
 ### `listarPases`
 
 Imprime cada pase del registro diario con codigo, tipo, estado, fecha y hora en
 el orden de registro. Si no hay lista o esta vacia, imprime un aviso.
+
+### `listarPasesDelDia`
+
+Alias descriptivo de `listarPases`; imprime el registro diario sin modificarlo.
 
 ### `contarPasesPorEstado`
 
@@ -433,7 +530,7 @@ Esta lista es propietaria de las copias de pase que contiene. Acepta `NULL`.
 
 ## Reservas de libros
 
-Archivo: [src/reservas/colaReservas.c](./src/reservas/colaReservas.c).
+Archivo: [src/reservas/reservaProducto.c](./src/reservas/reservaProducto.c).
 
 ### `crearReserva`
 
@@ -452,8 +549,8 @@ Valida que libro y cliente existan, que el libro este en preventa, que el pase
 sea activo o utilizado y de tipo `1..4`, que el cliente tenga arreglo de pases y
 que no tenga otra reserva del mismo libro. Exige que el pase sea exactamente uno
 de los punteros asociados al cliente. Crea reserva y nodo y llama a `encolar`;
-si falla cualquiera de esos pasos, libera lo que alcanzo a crear. Retorna `1` al
-reservar y `0` si rechaza la solicitud.
+si falla alguna asignacion o el encolado, libera las asignaciones parciales.
+Retorna `1` al reservar y `0` si rechaza la solicitud.
 
 ### `encolar`
 
@@ -466,9 +563,9 @@ propiedad del nodo y de la reserva.
 
 ### `desencolar`
 
-Retira y desliga la primera reserva del libro. Retorna el nodo para que quien
-llama lo procese y libere; no libera ni nodo ni reserva. Retorna `NULL` si el
-libro no existe o la cola esta vacia.
+Retira y desliga la primera reserva del libro. Retorna el nodo y transfiere al
+llamador la responsabilidad de liberar el nodo y su reserva. Retorna `NULL` si
+el libro no existe o la cola esta vacia.
 
 ### `cantidadEnEspera`
 
@@ -489,12 +586,12 @@ que tengan datos incompletos.
 ### `eliminarReserva`
 
 Busca una reserva por RUT y la desenlaza desde la cabeza o desde su nodo
-anterior. Libera el nodo y el struct `Reserva`, pero no libera al cliente.
-Retorna `1` si elimina y `0` si el libro es nulo o no hay coincidencia.
+anterior. Libera el nodo y la reserva, pero no al cliente referenciado. Retorna
+`1` si elimina y `0` si el libro es nulo o no hay coincidencia.
 
 ### `vaciarCola`
 
-Libera todas las reservas y nodos de un libro y deja `headReserva` en `NULL`.
+Libera todos los nodos y reservas de un libro y deja `headReserva` en `NULL`.
 No libera a los clientes referenciados. Acepta `NULL`.
 
 ## Salas tematicas
@@ -506,8 +603,9 @@ Archivos: [src/salas/CrearSalas.c](./src/salas/CrearSalas.c),
 ### `crearSala`
 
 Crea una sala con tematica, codigo y aforo aproximado. Copia la tematica y deja
-el arbol de libros vacio. Retorna la sala o `NULL` si la tematica es nula o falla
-memoria. La funcion no valida rangos de codigo o aforo.
+el arbol de libros vacio. Rechaza tematicas vacias, codigos no positivos y
+aforos negativos. Retorna la sala o `NULL` si los datos son invalidos o falla
+memoria.
 
 ### `crearNodoSala`
 
@@ -555,10 +653,11 @@ modificarla.
 ### `modificarSala`
 
 Busca la sala por codigo, valida que el nuevo codigo no pertenezca a otra sala,
-reserva y copia la nueva tematica, y actualiza tematica, codigo y aforo. Reserva
-la copia antes de liberar el texto anterior, para mantener los datos si falla
-memoria. Retorna `1` si modifica y `0` si faltan argumentos, la sala no existe,
-el codigo esta ocupado o falla memoria.
+valida que el nuevo codigo sea positivo, que el aforo no sea negativo, reserva
+y copia la nueva tematica, y actualiza tematica, codigo y aforo. Reserva la
+copia antes de liberar el texto anterior, para mantener los datos si falla
+memoria. Retorna `1` si modifica y `0` si faltan argumentos, los datos son
+invalidos, la sala no existe, el codigo esta ocupado o falla memoria.
 
 ## Cierre de jornada
 
@@ -577,7 +676,9 @@ y `0` si algun argumento es nulo.
 Estas funciones estan en `tests/`; construyen escenarios o ejecutan aserciones y
 no forman parte del ejecutable de produccion.
 
-Archivo: [tests/main_flujo.c](./tests/main_flujo.c)
+Archivos: [tests/main_flujo.c](./tests/main_flujo.c),
+[tests/pruebas_estres.c](./tests/pruebas_estres.c) y
+[tests/pruebas_regresion.c](./tests/pruebas_regresion.c).
 
 ### `crearPasePrueba`
 
@@ -617,6 +718,15 @@ Ejecuta las pruebas puntuales de fechas y capacidad, y luego el escenario de
 jornada integrada. Si una asercion falla, el proceso de prueba termina con error;
 si todas pasan, imprime un mensaje de exito y retorna `0`.
 
+### `pruebas_estres`
+
+Ejecuta mil escenarios completos de forma secuencial. Cada escenario configura
+una tienda y acceso, registra un cliente y un pase, procesa la fila, crea una
+sala y libros, reserva y vende un ejemplar, cancela otra reserva, elimina libros
+del arbol (incluido uno con dos hijos), cierra la jornada y libera los datos
+restantes. El script `tests/run_tests.ps1` compila y ejecuta esta prueba junto
+con las regresiones y el flujo integrado.
+
 Archivo: [tests/pruebas_regresion.c](./tests/pruebas_regresion.c)
 
 ### `probarIngresosUnicosYReingresos`
@@ -626,12 +736,12 @@ registre como utilizado al ingresar y que pueda reingresar sin duplicar el
 registro diario ni sumar recaudacion. Comprueba tambien el rechazo de pases
 anulados/vencidos y el cierre.
 
-### `probarEliminacionDeReferenciasYDespachos`
+### `probarProteccionesDeEliminacionYDespachos`
 
-Comprueba que al eliminar a un cliente se retiren sus pases de la fila y sus
-reservas, sin borrar copias del registro diario. Tambien valida despacho,
-reservas de otro cliente, venta de un libro, cierre y conservacion de los datos
-permanentes.
+Comprueba que se rechace eliminar un cliente con pases en fila, ingresos,
+reservas o pases activos y que se permita cuando ya no mantiene dependencias.
+Tambien valida despacho, reservas de otro cliente, venta de un libro, cierre y
+conservacion de los datos permanentes.
 
 ### `probarCasosLimiteDeReservas`
 

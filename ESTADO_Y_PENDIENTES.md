@@ -53,20 +53,19 @@
   registrar pases nuevos al comenzar otro dia.
 - La recaudacion final se devuelve al llamador y permanece en
   `Tienda.recaudacion`. El cierre no la reinicia ni guarda datos en disco.
-- La aplicacion actual solo ejecuta un dia por proceso. Al terminar el proceso
-  no se persiste el estado; al abrirlo de nuevo se debe crear una tienda nueva
-  e ingresar la fecha de esa jornada.
-- `main.c` aun no tiene el flujo de uso que invoque este cierre; debe llamar a
-  `cerrarTienda` al finalizar la jornada y mostrar la recaudacion devuelta.
+- El menu de `src/main.c` conecta clientes, pases, salas, libros, reservas,
+  ingresos y recaudacion. Al terminar invoca `cerrarTienda` y libera las
+  estructuras permanentes creadas durante la ejecucion.
+- La aplicacion ejecuta un dia por proceso. Al terminar no persiste el estado;
+  al abrirla de nuevo se crea una tienda nueva y se ingresa la fecha de esa
+  jornada.
 
 ## Pendiente antes de considerar completa la aplicacion
 
-- Conectar las operaciones de clientes, pases, libros, salas y fila desde `main.c`.
-- Invocar el cierre de jornada desde el flujo final de `main.c`.
 - Incorporar el aviso/interfaz para comunicar a los clientes cuando una reserva
   pueda ser atendida; por ahora el orden se hace cumplir al registrar la venta.
-- Incorporar persistencia de datos e interfaz de uso; actualmente `main.c` solo
-  imprime el mensaje de inicio.
+- Incorporar persistencia de datos. El menu de consola permite operar durante
+  la jornada actual, pero los datos no se guardan al cerrar el proceso.
 
 ## Verificacion realizada
 
@@ -74,7 +73,7 @@
 - Pruebas de regresion permanentes en `tests/pruebas_regresion.c`, ejecutables
   con `powershell -NoProfile -ExecutionPolicy Bypass -File tests/run_tests.ps1`.
 - `tests/main_flujo.c` contiene un main exclusivo de integracion que recorre una
-  jornada de prueba; no reemplaza ni conecta el `main.c` de la aplicacion.
+  jornada de prueba; se compila por separado del `main.c` de la aplicacion.
 - La suite cubre validacion de fechas/horas, limites y duplicados, prioridad y
   orden de fila, ingreso/reingreso, ventas y recaudacion, reservas solo en
   preventa con pases asociados, rechazo de inserciones invalidas, prioridad de
@@ -83,3 +82,5 @@
   extraccion, eliminacion y vaciado de cola), datos invalidos de libros,
   eliminacion de referencias, despacho, descatalogacion y cierre que conserva
   clientes, salas, libros y reservas, pero limpia los pases diarios.
+- `tests/run_tests.ps1` tambien compila el ejecutable de consola y verifica el
+  inicio y cierre de una jornada.

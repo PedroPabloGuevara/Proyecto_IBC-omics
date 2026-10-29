@@ -15,7 +15,9 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut);
 int registrarPaseCliente(struct Tienda *tienda, int rut, struct Pase *pase);
 /* Libera los pases diarios de todos los clientes sin eliminar a los clientes. */
 void liberarPasesClientes(struct NodoCliente *head);
-/* Elimina primero las referencias de fila y reservas, y luego sus pases. */
+/* No elimina pases que esten en fila o ya hayan ingresado. */
+int eliminarPase(struct Tienda *tienda, int rut, int codigo);
+/* No elimina clientes con pases activos, reservas o ingresos pendientes. */
 int eliminarCliente(struct Tienda *tienda, int rut);
 int eliminarReservasClienteArbol(struct NodoLibro *raiz, int rut);
 /* Retorna -2 si no hay memoria suficiente para copiar el nombre. */

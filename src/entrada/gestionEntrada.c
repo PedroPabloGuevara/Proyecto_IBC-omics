@@ -56,6 +56,7 @@ int solicitarIngreso(struct Tienda *tienda, struct Cliente *cliente,
         return 0;
     }
     if (!encolarFila(tienda->filaEntrada, nuevo)) {
+        free(nuevo);
         return 0;
     }
 
@@ -102,9 +103,10 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
     }
 
     if (actual >= cierre) {
-        /* Al cerrar, saca de la fila todos los nodos pendientes (quedan desligados). */
+        /* Al cerrar, retira y libera todos los nodos pendientes. */
         while (tienda->filaEntrada->head != NULL) {
             nodo = desencolarFila(tienda->filaEntrada);
+            free(nodo);
             if (resultado != NULL) {
                 resultado->rechazados++;
             }
@@ -119,6 +121,7 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
         if (cliente == NULL ||
             !validarSolicitudFila(tienda, cliente, nodo->paseVigente, horaActual)) {
             nodo = desencolarFila(tienda->filaEntrada);
+            free(nodo);
             if (resultado != NULL) {
                 resultado->rechazados++;
             }
@@ -164,6 +167,7 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
         }
 
         nodo = desencolarFila(tienda->filaEntrada);
+        free(nodo);
         if (resultado != NULL) {
             resultado->admitidos++;
         }

@@ -119,6 +119,14 @@ struct NodoPase *buscarPase(struct pasesDelDia *lista, int codigo) {
 }
 
 /*
+-busca un pase del registro diario por codigo
+-retorna el nodo encontrado o NULL si no existe
+*/
+struct NodoPase *buscarPaseDelDia(struct pasesDelDia *lista, int codigo) {
+    return buscarPase(lista, codigo);
+}
+
+/*
 -agrega un pase al final si sus datos son validos y no repite codigo
 -retorna 1 si se agrego o 0 si hay datos invalidos o falla memoria
 -si falla, el pase sigue perteneciendo a quien lo envio
@@ -153,6 +161,102 @@ int agregarPase(struct pasesDelDia *lista, struct Pase *pase) {
 }
 
 /*
+-agrega una copia independiente de un pase utilizado al registro diario
+-la lista adquiere la copia; el pase recibido sigue perteneciendo al llamador
+-retorna 1 si se agrego o 0 si los datos son invalidos o falla memoria
+*/
+int agregarPaseDelDia(struct pasesDelDia *lista, struct Pase *pase) {
+    struct Pase *copia;
+
+    if (lista == NULL || pase == NULL || pase->fecha == NULL ||
+        pase->hora == NULL || pase->estado != 3 ||
+        buscarPase(lista, pase->codigo) != NULL) {
+        return 0;
+    }
+
+    copia = crearPase(pase->tipoPase, pase->codigo, pase->valor, pase->estado,
+                      pase->fecha, pase->hora);
+    if (copia == NULL) {
+        return 0;
+    }
+
+    if (!agregarPase(lista, copia)) {
+        liberarPase(copia);
+        return 0;
+    }
+    return 1;
+}
+
+/*
+-modifica tipo y valor de un pase sin cambiar codigo, estado ni fecha
+-retorna 1 si modifica, 0 si el pase es NULL o -1 si los datos son invalidos
+*/
+int modificarPase(struct Pase *pase, int nuevoTipo, int nuevoValor) {
+    if (pase == NULL) {
+        return 0;
+    }
+    if (nuevoTipo < 1 || nuevoTipo > 4 || nuevoValor < 0) {
+        return -1;
+    }
+
+    pase->tipoPase = nuevoTipo;
+    pase->valor = nuevoValor;
+    return 1;
+}
+
+/*
+-modifica tipo y valor de la copia que conserva el registro diario
+-retorna 1 si modifica, 0 si no existe el codigo o -1 si los datos son invalidos
+*/
+int modificarPaseDelDia(struct pasesDelDia *lista, int codigo,
+                        int nuevoTipo, int nuevoValor) {
+    struct NodoPase *nodo = buscarPaseDelDia(lista, codigo);
+
+    if (nodo == NULL) {
+        return 0;
+    }
+    return modificarPase(nodo->paseVigente, nuevoTipo, nuevoValor);
+}
+
+/*
+-quita por codigo un pase y su copia propia del registro diario
+-retorna 1 si elimina, 0 si la lista no existe o no encuentra el codigo
+-retorna -1 si la lista existe pero esta vacia
+*/
+int eliminarPaseDelDia(struct pasesDelDia *lista, int codigo) {
+    struct NodoPase *actual;
+    struct NodoPase *anterior = NULL;
+
+    if (lista == NULL) {
+        return 0;
+    }
+    if (lista->head == NULL) {
+        return -1;
+    }
+
+    actual = lista->head;
+    while (actual != NULL &&
+           (actual->paseVigente == NULL ||
+            actual->paseVigente->codigo != codigo)) {
+        anterior = actual;
+        actual = actual->sig;
+    }
+    if (actual == NULL) {
+        return 0;
+    }
+
+    if (anterior == NULL) {
+        lista->head = actual->sig;
+    } else {
+        anterior->sig = actual->sig;
+    }
+
+    liberarPase(actual->paseVigente);
+    free(actual);
+    return 1;
+}
+
+/*
 -muestra los pases en el orden en que estan en la lista
 -indica codigo, tipo, estado, fecha y hora
 */
@@ -173,6 +277,13 @@ void listarPases(struct pasesDelDia *lista) {
             rec->paseVigente->hora);
         rec = rec->sig;
     }
+}
+
+/*
+-muestra el registro diario; es un nombre alternativo para listarPases
+*/
+void listarPasesDelDia(struct pasesDelDia *lista) {
+    listarPases(lista);
 }
 
 /*

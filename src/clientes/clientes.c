@@ -15,15 +15,31 @@
 struct Cliente *crearCliente(char *nombre, int rut)
 {
     struct Cliente *nuevo;
-    int i, tam;
-    nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
+    int i;
 
-    tam=strlen(nombre);
-    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));
+    if (nombre == NULL) {
+        return NULL;
+    }
+
+    nuevo = malloc(sizeof(*nuevo));
+    if (nuevo == NULL) {
+        return NULL;
+    }
+
+    nuevo->nombre = malloc(strlen(nombre) + 1);
+    if (nuevo->nombre == NULL) {
+        free(nuevo);
+        return NULL;
+    }
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
-    nuevo->pases=((struct Pase **)malloc(MAXPASES*sizeof(struct Pase *))); /* arr pases */
+    nuevo->pases = malloc(MAXPASES * sizeof(*nuevo->pases));
+    if (nuevo->pases == NULL) {
+        free(nuevo->nombre);
+        free(nuevo);
+        return NULL;
+    }
     for(i=0; i<MAXPASES; i++)
     {
         nuevo->pases[i]=NULL;
@@ -37,7 +53,14 @@ struct NodoCliente *crearNodoCliente(struct Cliente *dato) /* para meter en list
 {
     struct NodoCliente *nuevo;
 
-    nuevo=((struct NodoCliente*)malloc(sizeof(struct NodoCliente)));
+    if (dato == NULL) {
+        return NULL;
+    }
+
+    nuevo = malloc(sizeof(*nuevo));
+    if (nuevo == NULL) {
+        return NULL;
+    }
     nuevo->dato=dato;
     nuevo->sig=NULL;
 
@@ -82,17 +105,116 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
 
 int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 1 si lo agrego, 0 si el rut ya existia */
 {
+    struct Cliente *cliente;
+    struct NodoCliente *nodo;
+
+    if (head == NULL || nombre == NULL) {
+        return 0;
+    }
     if (buscarCliente(*head, rut)!=NULL) {
         return 0;
     }
-    enlazarCliente(head,crearNodoCliente(crearCliente(nombre, rut)));
+
+    cliente = crearCliente(nombre, rut);
+    if (cliente == NULL) {
+        return 0;
+    }
+    nodo = crearNodoCliente(cliente);
+    if (nodo == NULL) {
+        free(cliente->nombre);
+        free(cliente->pases);
+        free(cliente);
+        return 0;
+    }
+
+    enlazarCliente(head, nodo);
     return 1;
+}
+
+int registrarPaseCliente(struct Tienda *tienda, int rut, struct Pase *pase) {
+    struct NodoCliente *nodoCliente;
+    struct NodoCliente *iterCliente;
+    int apertura;
+    int cierre;
+    int posicionLibre = -1;
+    int cantidad = 0;
+    int i;
+
+    if (tienda == NULL || pase == NULL || pase->fecha == NULL ||
+        pase->codigo <= 0 || pase->tipoPase < 1 || pase->tipoPase > 4 ||
+        pase->estado != 1 || !validarFechaFila(tienda->fecha) ||
+        !paseValidoHoy(pase, tienda->fecha) ||
+        !validarHoraFila(tienda->hora_inicio, &apertura) ||
+        !validarHoraFila(tienda->hora_termino, &cierre) ||
+        cierre <= apertura) {
+        return 0;
+    }
+
+    nodoCliente = buscarCliente(tienda->headClientes, rut);
+    if (nodoCliente == NULL || nodoCliente->dato == NULL ||
+        nodoCliente->dato->pases == NULL ||
+        buscarPase(tienda->filaPasesDeldia, pase->codigo) != NULL) {
+        return 0;
+    }
+
+    iterCliente = tienda->headClientes;
+    if (iterCliente != NULL) {
+        do {
+            if (iterCliente->dato != NULL &&
+                iterCliente->dato->pases != NULL) {
+                for (i = 0; i < MAXPASES; i++) {
+                    struct Pase *existente = iterCliente->dato->pases[i];
+
+                    if (iterCliente == nodoCliente && existente == NULL &&
+                        posicionLibre < 0) {
+                        posicionLibre = i;
+                    }
+                    if (existente != NULL &&
+                        existente->codigo == pase->codigo) {
+                        return 0;
+                    }
+                    if (iterCliente == nodoCliente && existente != NULL) {
+                        cantidad++;
+                    }
+                }
+            }
+            iterCliente = iterCliente->sig;
+        } while (iterCliente != NULL && iterCliente != tienda->headClientes);
+    }
+
+    if (posicionLibre < 0) {
+        return 0;
+    }
+
+    nodoCliente->dato->pases[posicionLibre] = pase;
+    nodoCliente->dato->plibrepases = cantidad + 1;
+    return 1;
+}
+
+void liberarPasesClientes(struct NodoCliente *head) {
+    struct NodoCliente *actual = head;
+    int i;
+
+    if (head == NULL) {
+        return;
+    }
+
+    do {
+        if (actual->dato != NULL && actual->dato->pases != NULL) {
+            for (i = 0; i < MAXPASES; i++) {
+                liberarPase(actual->dato->pases[i]);
+                actual->dato->pases[i] = NULL;
+            }
+            actual->dato->plibrepases = 0;
+        }
+        actual = actual->sig;
+    } while (actual != NULL && actual != head);
 }
 
 /* busca recursivamente si el cliente tiene una reserva en algun libro del arbol */
 /* retorna 1 si encuentra una reserva con ese rut, 0 si no */
 
-int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
+static int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
 
     if (raiz == NULL) {
         return 0;
@@ -103,6 +225,16 @@ int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
     }
 
     return tieneReservaArbol(raiz->izq, rut) || tieneReservaArbol(raiz->der, rut);
+}
+
+int eliminarReservasClienteArbol(struct NodoLibro *raiz, int rut) {
+    if (raiz == NULL) {
+        return 0;
+    }
+
+    return eliminarReservasClienteArbol(raiz->izq, rut) +
+           eliminarReserva(raiz->dato, rut) +
+           eliminarReservasClienteArbol(raiz->der, rut);
 }
 
 /* === ELIMIMNAR PASE === */
@@ -128,6 +260,9 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
     }
 
     c = nodo->dato;
+    if (c == NULL || c->pases == NULL) {
+        return 0;
+    }
 
     /* buscar la posicion del pase en el arreglo del cliente */
     for (i = 0; i < MAXPASES && pos < 0; i++) {
@@ -165,7 +300,9 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
 
     /* el for no toca la ultima posicion, queda con una copia repetida, se vacia con NULL */
     c->pases[MAXPASES - 1] = NULL;
-    c->plibrepases--;
+    if (c->plibrepases > 0) {
+        c->plibrepases--;
+    }
 
     return 1;
 }

@@ -94,10 +94,13 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
 
     nodo = crearNodoReserva(reserva);
     if (nodo == NULL) {
+        free(reserva);
         return 0;
     }
 
     if (!encolar(libro, nodo)) {
+        free(nodo);
+        free(reserva);
         return 0;
     }
     return 1;
@@ -251,7 +254,7 @@ struct NodoReserva *buscarReserva(struct Libro *libro, int rut) {
 
 /*
 -elimina de la lista del libro la reserva de un cliente, este donde este
--desenlaza el nodo y deja sus punteros en NULL, sin liberar memoria ni tocar al cliente
+-libera el nodo y la reserva, pero no libera al cliente
 -retorna 1 si la elimino, 0 si no estaba o el libro es NULL
 */
 int eliminarReserva(struct Libro *libro, int rut) {
@@ -281,15 +284,14 @@ int eliminarReserva(struct Libro *libro, int rut) {
         ant->sig = rec->sig;
     }
 
-    /* El nodo sale aislado: lo que apuntaba queda en NULL. */
-    rec->sig = NULL;
-    rec->dato = NULL;
+    /* La cola es propietaria de la reserva y su nodo, no del cliente. */
+    free(rec->dato);
+    free(rec);
     return 1;
 }
 
 /*
--deja vacia la lista del libro sin liberar memoria
--deja el sig y el dato de cada nodo en NULL, de modo que quedan desligados
+-deja vacia la lista del libro liberando sus reservas y nodos
 -al final headReserva queda en NULL y el libro puede recibir nuevas reservas
 */
 void vaciarCola(struct Libro *libro) {
@@ -300,12 +302,12 @@ void vaciarCola(struct Libro *libro) {
         return;
     }
 
-    /* Guarda el siguiente nodo antes de dejar en NULL los enlaces del actual. */
+    /* Guarda el siguiente nodo antes de liberar la reserva y el nodo actual. */
     rec = libro->headReserva;
     while (rec != NULL) {
         sig = rec->sig;
-        rec->sig = NULL;
-        rec->dato = NULL;
+        free(rec->dato);
+        free(rec);
         rec = sig;
     }
 

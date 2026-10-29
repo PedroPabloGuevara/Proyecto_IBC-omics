@@ -24,7 +24,9 @@ void reiniciarRecaudacionDiaria(struct Tienda *tienda);
 /* reservasCanceladas recibe cuantas reservas se vaciaron; puede ser NULL. */
 int descatalogarLibro(struct NodoLibro *raiz, int codigo,
                       int *reservasCanceladas);
+/* Libera la cola de reservas, los textos y el struct del libro. */
 void liberarLibro(struct Libro *libro);
+/* Retira del arbol y libera el nodo, el libro, sus textos y reservas. */
 int eliminarLibro(struct NodoLibro **raiz, int codigo);
 
 #endif
