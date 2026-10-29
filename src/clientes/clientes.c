@@ -8,41 +8,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*
- * Crea un cliente y reserva su nombre y arreglo de pases.
- * Retorna NULL si faltan datos o no se puede reservar memoria.
- */
+/* === CLIENTE === */
+
+/* #define MAXPASES 50 */
+
 struct Cliente *crearCliente(char *nombre, int rut)
 {
     struct Cliente *nuevo;
     int i, tam;
+    nuevo=((struct Cliente*)malloc(sizeof(struct Cliente)));
 
-    if (nombre == NULL) {
-        return NULL;
-    }
-
-    nuevo = malloc(sizeof(*nuevo));
-    if (nuevo == NULL) {
-        return NULL;
-    }
-
-    /* El cliente conserva una copia propia del nombre recibido. */
-    tam = strlen(nombre);
-    nuevo->nombre = malloc((tam + 1) * sizeof(char));
-    if (nuevo->nombre == NULL) {
-        free(nuevo);
-        return NULL;
-    }
+    tam=strlen(nombre);
+    nuevo->nombre=((char *)malloc((tam+1)*sizeof(char)));
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
-    nuevo->pases = malloc(MAXPASES * sizeof(*nuevo->pases));
-    if (nuevo->pases == NULL) {
-        free(nuevo->nombre);
-        free(nuevo);
-        return NULL;
-    }
-    /* Inicializa todas las posiciones para que puedan consultarse con seguridad. */
+    nuevo->pases=((struct Pase **)malloc(MAXPASES*sizeof(struct Pase *))); /* arr pases */
     for(i=0; i<MAXPASES; i++)
     {
         nuevo->pases[i]=NULL;
@@ -52,36 +33,19 @@ struct Cliente *crearCliente(char *nombre, int rut)
     return nuevo;
 }
 
-/*
- * Envuelve un cliente en un nodo desligado para incorporarlo a la lista circular.
- * El nodo no copia ni adquiere la propiedad del cliente.
- */
-struct NodoCliente *crearNodoCliente(struct Cliente *dato)
+struct NodoCliente *crearNodoCliente(struct Cliente *dato) /* para meter en lista */
 {
     struct NodoCliente *nuevo;
 
-    if (dato == NULL) {
-        return NULL;
-    }
-
-    nuevo = malloc(sizeof(*nuevo));
-    if (nuevo == NULL) {
-        return NULL;
-    }
-    /* El enlace circular se establece despues, al insertar el nodo en la lista. */
+    nuevo=((struct NodoCliente*)malloc(sizeof(struct NodoCliente)));
     nuevo->dato=dato;
     nuevo->sig=NULL;
 
     return nuevo;
 }
 
-/*
- * Busca un cliente por RUT recorriendo la lista circular desde su cabeza.
- * Retorna el nodo encontrado o NULL si la lista esta vacia o no hay coincidencia.
- */
 struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut) {
     struct NodoCliente *rec=head;
-    /* El do-while visita tambien la cabeza antes de comprobar el cierre del ciclo. */
     if(rec!=NULL)
     {
         do
@@ -95,19 +59,10 @@ struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut) {
     }
     return NULL;
 }
-/*
- * Inserta un nodo al final de la lista circular y conserva su cabeza actual.
- * Si la lista esta vacia, el nuevo nodo queda enlazado consigo mismo.
- */
 void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
 {
     struct NodoCliente *rec;
 
-    if (head == NULL || nuevo == NULL) {
-        return;
-    }
-
-    /* En una lista vacia, el unico nodo es a la vez cabeza y cola. */
     if(*head==NULL)
     {
         *head=nuevo;
@@ -115,7 +70,6 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
     }
     else
     {
-        /* Busca el ultimo nodo: su siguiente enlace apunta a la cabeza. */
         rec=*head;
         while(rec->sig!=*head)
         {
@@ -126,281 +80,229 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
     }
 }
 
-/*
- * Valida la unicidad del RUT, crea cliente y nodo, y los agrega a la lista.
- * Retorna 1 si se agrega; ante error libera lo reservado y retorna 0.
- */
-int agregarCliente(struct NodoCliente **head, char *nombre, int rut)
+int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 1 si lo agrego, 0 si el rut ya existia */
 {
-    struct Cliente *cliente;
-    struct NodoCliente *nodo;
-
-    if (head == NULL || nombre == NULL) {
-        return 0;
-    }
-
-    /* Evita insertar un segundo cliente con el mismo identificador. */
     if (buscarCliente(*head, rut)!=NULL) {
         return 0;
     }
-
-    /* Construye primero los objetos para no cambiar la lista ante un fallo. */
-    cliente = crearCliente(nombre, rut);
-    if (cliente == NULL) {
-        return 0;
-    }
-
-    nodo = crearNodoCliente(cliente);
-    if (nodo == NULL) {
-        free(cliente->nombre);
-        free(cliente->pases);
-        free(cliente);
-        return 0;
-    }
-
-    enlazarCliente(head, nodo);
+    enlazarCliente(head,crearNodoCliente(crearCliente(nombre, rut)));
     return 1;
 }
 
-/*
--registra en un cliente un pase externo activo, sin venderlo ni sumar dinero
--valida su titularidad, codigo, fecha y horario antes de guardar el puntero
--si retorna 1, el cliente pasa a ser propietario del pase; si retorna 0, no
--retorna 1 si lo asocia o 0 si el pase, el cliente o los datos no son validos
-*/
-int registrarPaseCliente(struct Tienda *tienda, int rut, struct Pase *pase) {
-    struct NodoCliente *nodoCliente;
-    struct NodoCliente *iterCliente;
-    struct NodoPase *nodoRegistro;
-    int apertura;
-    int cierre;
-    int posicionLibre = -1;
-    int cantidad = 0;
-    int i;
+/* busca recursivamente si el cliente tiene una reserva en algun libro del arbol */
+/* retorna 1 si encuentra una reserva con ese rut, 0 si no */
 
-    if (tienda == NULL || pase == NULL || pase->fecha == NULL ||
-        pase->codigo <= 0 ||
-        pase->tipoPase < 1 || pase->tipoPase > 4 || pase->estado != 1 ||
-        !validarFechaFila(tienda->fecha) ||
-        !paseValidoHoy(pase, tienda->fecha) ||
-        !validarHoraFila(tienda->hora_inicio, &apertura) ||
-        !validarHoraFila(tienda->hora_termino, &cierre) ||
-        cierre <= apertura) {
-        return 0;
-    }
-
-    nodoCliente = buscarCliente(tienda->headClientes, rut);
-    if (nodoCliente == NULL || nodoCliente->dato == NULL ||
-        nodoCliente->dato->pases == NULL) {
-        return 0;
-    }
-
-    /* No permite reutilizar un codigo ya ingresado durante la jornada. */
-    nodoRegistro = buscarPase(tienda->filaPasesDeldia, pase->codigo);
-    if (nodoRegistro != NULL) {
-        return 0;
-    }
-
-    /* Busca una posicion libre y evita duplicar codigos entre clientes. */
-    iterCliente = tienda->headClientes;
-    do {
-        if (iterCliente->dato != NULL && iterCliente->dato->pases != NULL) {
-            for (i = 0; i < MAXPASES; i++) {
-                struct Pase *existente = iterCliente->dato->pases[i];
-
-                if (iterCliente == nodoCliente && existente == NULL &&
-                    posicionLibre < 0) {
-                    posicionLibre = i;
-                }
-                if (existente != NULL && existente->codigo == pase->codigo) {
-                    return 0;
-                }
-                if (iterCliente == nodoCliente && existente != NULL) {
-                    cantidad++;
-                }
-            }
-        }
-        iterCliente = iterCliente->sig;
-    } while (iterCliente != NULL && iterCliente != tienda->headClientes);
-
-    if (posicionLibre < 0) {
-        return 0;
-    }
-
-    nodoCliente->dato->pases[posicionLibre] = pase;
-    nodoCliente->dato->plibrepases = cantidad + 1;
-    return 1;
-}
-
-/*
--libera las credenciales de todos los clientes y reinicia sus contadores
--conserva los clientes y sus demas datos
-*/
-void liberarPasesClientes(struct NodoCliente *head) {
-    struct NodoCliente *actual = head;
-    int i;
-
-    if (head == NULL) {
-        return;
-    }
-
-    /* La lista puede ser circular: termina al volver al nodo inicial. */
-    do {
-        if (actual->dato != NULL && actual->dato->pases != NULL) {
-            for (i = 0; i < MAXPASES; i++) {
-                liberarPase(actual->dato->pases[i]);
-                actual->dato->pases[i] = NULL;
-            }
-            actual->dato->plibrepases = 0;
-        }
-        actual = actual->sig;
-    } while (actual != NULL && actual != head);
-}
-
-/*
--elimina de cada libro las reservas que apuntan al rut indicado
--recorre recursivamente el arbol binario y libera solo reservas y nodos
--retorna la cantidad de reservas eliminadas
-*/
-int eliminarReservasClienteArbol(struct NodoLibro *raiz, int rut) {
-    int eliminadas;
+int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
 
     if (raiz == NULL) {
         return 0;
     }
 
-    /* Recorre ambos subarboles y suma la reserva que pudiera estar en este libro. */
-    eliminadas = eliminarReservasClienteArbol(raiz->izq, rut);
-    eliminadas += eliminarReserva(raiz->dato, rut);
-    eliminadas += eliminarReservasClienteArbol(raiz->der, rut);
-    return eliminadas;
+    if (buscarReserva(raiz->dato, rut) != NULL) {
+        return 1;
+    }
+
+    return tieneReservaArbol(raiz->izq, rut) || tieneReservaArbol(raiz->der, rut);
 }
 
-/*
--elimina un cliente de la tienda sin dejar referencias a sus datos liberados
--retira primero sus pases de la fila y sus reservas de todos los libros
--conserva los registros diarios de ingreso, que guardan copias independientes
--retorna 1 si se elimino el cliente y 0 si no existe o la tienda es NULL
-*/
+/* === ELIMIMNAR PASE === */
+
+/* elimina un pase del arreglo de pases de un cliente y compacta el arreglo */
+/* no se elimina si el pase esta esperando en la fila o ya ingreso (esta en el registro del dia) */
+/* retorna 1 si se elimino, 0 si el cliente o el pase no existen, */
+/* -1 si el pase esta en la fila, -2 si el pase ya ingreso */
+
+int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
+    struct NodoCliente *nodo;
+    struct Cliente *c;
+    int i, pos = -1;
+
+    if (tienda == NULL) {
+        return 0;
+    }
+
+    nodo = buscarCliente(tienda->headClientes, rut);
+
+    if (nodo == NULL) {
+        return 0;
+    }
+
+    c = nodo->dato;
+
+    /* buscar la posicion del pase en el arreglo del cliente */
+    for (i = 0; i < MAXPASES && pos < 0; i++) {
+
+        if (c->pases[i] != NULL && c->pases[i]->codigo == codigo) {
+            pos = i;
+        }
+    }
+
+    if (pos < 0) {
+
+        return 0; /* el cliente no tiene ese pase */
+    }
+
+    if (buscarEnFila(tienda->filaEntrada, codigo) != NULL) {
+
+        return -1; /* esta esperando en la fila */
+    }
+
+    if (buscarPase(tienda->filaPasesDeldia, codigo) != NULL) {
+        return -2; /* ya ingreso, el cliente esta dentro */
+    }
+
+    /* no se si esto esta correcto */
+    /* el pase tiene 3 bloques de memoria (fecha, hora y el struct), cada uno con su free */
+    /* primero los textos y al final el struct, porque el struct es quien los apunta */
+    free(c->pases[pos]->fecha);
+    free(c->pases[pos]->hora);
+    free(c->pases[pos]);
+
+    /* cada pase siguiente retrocede una posicion y tapa el eliminado */
+    for (i = pos; i < MAXPASES - 1; i++) {
+        c->pases[i] = c->pases[i + 1];
+    }
+
+    /* el for no toca la ultima posicion, queda con una copia repetida, se vacia con NULL */
+    c->pases[MAXPASES - 1] = NULL;
+    c->plibrepases--;
+
+    return 1;
+}
+
+/* elimina un cliente solo si no esta en la fila, dentro de la tienda, no tiene reservas ni pases activos */
+/* al eliminar un cliente (nodo), el nodo anterior debe saltarse el eliminado. */
+/* retorna 1 si se elimino, 0 si el cliente no existe, */
+/* -1 si tiene un pase en la fila, -2 si esta dentro de la tienda (un pase ya ingreso), */
+/* -3 si tiene una reserva, -4 si tiene un pase activo disponible */
+
 int eliminarCliente(struct Tienda *tienda, int rut) {
-    struct NodoCliente *actual;
-    struct NodoCliente *anterior;
-    struct NodoSala *nodoSala;
+    struct NodoCliente *act, *rec; /* rec esta justo antes de act */
+    struct NodoSala *sala;
+    struct Cliente *c;
     int i;
 
     if (tienda == NULL || tienda->headClientes == NULL) {
         return 0;
     }
 
-    /* Obtiene el nodo antes de retirar referencias que apuntan a su cliente. */
-    actual = buscarCliente(tienda->headClientes, rut);
-    if (actual == NULL || actual->dato == NULL) {
-        return 0;
+    act = buscarCliente(tienda->headClientes, rut);
+
+    if (act == NULL) {
+        return 0; /* no se encontro */
     }
 
-    /* Quita primero la fila, cuyos nodos referencian los pases del cliente. */
-    if (tienda->filaEntrada != NULL && actual->dato->pases != NULL) {
-        for (i = 0; i < MAXPASES; i++) {
-            if (actual->dato->pases[i] != NULL) {
-                quitarDeFila(tienda->filaEntrada, actual->dato->pases[i]->codigo);
+    c = act->dato;
+
+    /* revisar sus pases: en fila o ya ingresados */
+    for (i = 0; i < MAXPASES; i++) {
+        if (c->pases[i] != NULL) {
+            if (buscarEnFila(tienda->filaEntrada, c->pases[i]->codigo) != NULL) {
+                return -1;
+            }
+            if (buscarPase(tienda->filaPasesDeldia, c->pases[i]->codigo) != NULL) {
+                return -2;
             }
         }
     }
 
-    /* Las reservas guardan un puntero al cliente y deben desaparecer primero. */
-    for (nodoSala = tienda->headSalas; nodoSala != NULL;
-         nodoSala = nodoSala->sig) {
-        if (nodoSala->dato != NULL) {
-            eliminarReservasClienteArbol(nodoSala->dato->raiz, rut);
+    /* revisar sus reservas en todos los libros de todas las salas */
+    for (sala = tienda->headSalas; sala != NULL; sala = sala->sig) {
+        if (tieneReservaArbol(sala->dato->raiz, rut)) {
+            return -3;
         }
     }
 
-    /* Desenlaza el cliente de la lista circular antes de liberar sus datos. */
-    if (actual->sig == actual) {
+    /* revisar que no tenga pases activos disponibles (estado 1) */
+    for (i = 0; i < MAXPASES; i++) {
+        if (c->pases[i] != NULL && c->pases[i]->estado == 1) {
+            return -4;
+        }
+    }
+
+    /* desenlazar de la lista circular */
+    if (act->sig == act) { /* unico nodo -> lista queda vacia */
         tienda->headClientes = NULL;
-    } else {
-        anterior = actual;
-        while (anterior->sig != actual) {
-            anterior = anterior->sig;
+    }
+    else {
+        rec = tienda->headClientes;
+        while (rec->sig != act) { /* rec queda justo antes del nodo a eliminar */
+            rec = rec->sig;
         }
-        anterior->sig = actual->sig;
-        if (tienda->headClientes == actual) {
-            tienda->headClientes = actual->sig;
+        rec->sig = act->sig; /* el anterior apunta a lo que apuntaba el eliminado */
+
+        if (act == tienda->headClientes) { /* si era head, el head pasa al siguiente */
+            tienda->headClientes = act->sig;
         }
     }
 
-    /* El registro diario posee copias de los pases y permanece intacto. */
-    if (actual->dato->pases != NULL) {
-        for (i = 0; i < MAXPASES; i++) {
-            liberarPase(actual->dato->pases[i]);
+    /* no se si esta bien */
+    /* liberar memoria: pases restantes (anulados o vencidos), nombre, arreglo, cliente y nodo */
+    for (i = 0; i < MAXPASES; i++) {
+        if (c->pases[i] != NULL) {
+            free(c->pases[i]->fecha);
+            free(c->pases[i]->hora);
+            free(c->pases[i]);
         }
     }
-    free(actual->dato->nombre);
-    free(actual->dato->pases);
-    free(actual->dato);
-    free(actual);
+
+    free(c->nombre);
+    free(c->pases);
+    free(c);
+    free(act);
+
     return 1;
 }
 
-/*
- * Actualiza el nombre y el RUT de un cliente existente.
- * Retorna 1 al modificar, 0 por datos o cliente invalidos, -1 por RUT repetido
- * y -2 si no se pudo reservar memoria para copiar el nombre.
- */
-int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre,
-                     int nuevoRut)
-{
+/* retorna 1 si se modifico, 0 si el cliente no existe o el nombre es NULL, */
+/* -1 si el rut nuevo ya pertenece a otro cliente, -2 si no hay memoria */
+
+int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) {
+
     struct NodoCliente *nodo;
-    int tam;
     char *copia;
 
-    if (nuevoNombre == NULL) {
+    if(nuevoNombre==NULL) {
         return 0;
     }
 
-    /* Valida el cliente y el nuevo identificador antes de reemplazar sus datos. */
     nodo=buscarCliente(head, rut);
-    if(nodo==NULL)
-    {
+
+    if(nodo==NULL) {
         return 0;
     }
 
-    if(nuevoRut!=rut && buscarCliente(head, nuevoRut)!=NULL) /* rut no puede pertenecer a otro cliente */
-    {
+    if(nuevoRut!=rut && buscarCliente(head, nuevoRut)!=NULL) { /* rut no puede pertenecer a otro cliente */
         return -1;
     }
 
-    /* reservar memoria para nombre y copiar */
-    /* Copia antes de liberar el nombre anterior para mantener el estado ante error. */
-    tam = strlen(nuevoNombre);
-    copia = malloc((tam + 1) * sizeof(char));
-    if (copia == NULL) {
+    /* reservar espacio para el nombre nuevo */
+    copia=((char *)malloc((strlen(nuevoNombre)+1)*sizeof(char)));
+
+    /* revisar si hubo memoria, si no hay el cliente conserva su nombre */
+    if(copia==NULL) {
         return -2;
     }
-    strcpy(copia, nuevoNombre);
-    free(nodo->dato->nombre);
-    nodo->dato->nombre = copia;
+
+    strcpy(copia, nuevoNombre); /*  copia el nuevo nombre al espacio neuvo */
+
+    free(nodo->dato->nombre); /* se libera el nombre viejo */
+
+    nodo->dato->nombre=copia; /* el cliente pasa a apuntar al nombre nuevo */
     nodo->dato->rut=nuevoRut;
 
     return 1;
 }
 
-/*
- * Imprime los clientes en el orden de la lista circular.
- * Si no hay clientes, informa que la lista esta vacia.
- */
-void listarClientes(struct NodoCliente *head)
-{
+void listarClientes(struct NodoCliente *head) { /* mostrar clientes */
+
     struct NodoCliente *rec=head;
     int cantidad=0;
 
-    if(rec==NULL)
-    {
+    if(rec==NULL) {
         printf("No hay clientes registrados.\n");
     }
-    else
-    {
-        /* La condicion de vuelta a head evita recorrer dos veces la lista circular. */
+    else {
         do
         {
             cantidad++;
@@ -408,6 +310,6 @@ void listarClientes(struct NodoCliente *head)
                    cantidad, rec->dato->nombre, rec->dato->rut,
                    rec->dato->plibrepases);
             rec=rec->sig;
-        }while(rec!=head);
+        } while(rec!=head);
     }
 }
