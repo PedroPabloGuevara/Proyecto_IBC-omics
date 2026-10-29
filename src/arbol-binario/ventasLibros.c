@@ -34,7 +34,7 @@ void reiniciarRecaudacionDiaria(struct Tienda *tienda) {
 -retorna las unidades vendidas o cero si no se pudo completar la venta
 */
 int registrarVenta(struct Tienda *tienda, struct Libro *libro,
-                   int cantidad, int rut, int tieneComprador) {
+                int cantidad, int rut, int tieneComprador) {
     int unidadesVendidas;
     int ingreso;
     int reservasPendientes;
@@ -50,8 +50,8 @@ int registrarVenta(struct Tienda *tienda, struct Libro *libro,
     reservasPendientes = libro->headReserva != NULL;
     if (reservasPendientes &&
         (!tieneComprador || libro->headReserva->dato == NULL ||
-         libro->headReserva->dato->reservador == NULL ||
-         libro->headReserva->dato->reservador->rut != rut)) {
+        libro->headReserva->dato->reservador == NULL ||
+        libro->headReserva->dato->reservador->rut != rut)) {
         return 0;
     }
 

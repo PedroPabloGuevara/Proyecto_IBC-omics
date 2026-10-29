@@ -171,9 +171,8 @@ int quitarDeFila(struct Fila *fila, int codigoPase) {
 }
 
 /*
--desenlaza todos los nodos de la fila, dejando el sig de cada uno en NULL
+-libera todos los nodos de la fila; los pases apuntados por los nodos no se tocan
 -deja head y tail en NULL para que la fila pueda reutilizarse
--no libera memoria ni toca los pases apuntados por los nodos
 -si fila es NULL, no realiza cambios
 */
 void vaciarFila(struct Fila *fila) {
@@ -184,24 +183,25 @@ void vaciarFila(struct Fila *fila) {
         return;
     }
 
-    /* Guarda el siguiente enlace antes de dejar en NULL el del nodo actual. */
+    /* Guarda el siguiente enlace antes de liberar el nodo actual. */
     for (rec = fila->head; rec != NULL; rec = siguiente) {
         siguiente = rec->sig;
-        rec->sig = NULL;
+        free(rec);
     }
     fila->head = NULL;
     fila->tail = NULL;
 }
 
 /*
--deja la fila sin nodos para poder soltarla (no usa free)
--desenlaza todos sus nodos; la estructura Fila no se libera
+-libera todos los nodos de la fila y despues la estructura Fila
 -no toca los pases apuntados por los nodos
+-despues de llamarla el puntero a la fila ya no es valido
 -si fila es NULL, no realiza ninguna accion
 */
 void liberarFila(struct Fila *fila) {
     if (fila != NULL) {
-        /* Solo desenlaza los nodos; quien tenia la fila decide si la suelta. */
+        /* Primero los nodos y despues la estructura que los enlazaba. */
         vaciarFila(fila);
+        free(fila);
     }
 }
