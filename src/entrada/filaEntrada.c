@@ -24,7 +24,7 @@ struct Fila *crearFila(void) {
 -agrega un nodo de pase a la fila
 -rechaza pases invalidos, repetidos o nodos que ya esten enlazados
 -inserta los pases de tipo 4 antes de los demas, conservando el orden entre prioritarios;
- los otros tipos se agregan al final
+los otros tipos se agregan al final
 -retorna 1 si el nodo se agrego y 0 si no se pudo agregar
 -si tiene exito, la fila enlaza el nodo; el pase sigue siendo externo
 */
@@ -90,7 +90,7 @@ int encolarFila(struct Fila *fila, struct NodoPase *nuevo) {
 -retira el primer nodo de la fila y lo separa de la lista
 -actualiza head y tail; ambos quedan en NULL si se retira el ultimo nodo
 -retorna el nodo retirado, o NULL si la fila es NULL o esta vacia
--quien llama debe liberar el nodo; el pase guardado no se libera
+-quien llama decide que hace con el nodo retirado; el pase guardado no se toca
 */
 struct NodoPase *desencolarFila(struct Fila *fila) {
     struct NodoPase *primero;
@@ -135,7 +135,7 @@ struct NodoPase *buscarEnFila(struct Fila *fila, int codigoPase) {
 /*
 -busca y quita de la fila el pase con el codigo indicado
 -actualiza head o tail cuando elimina un extremo
--libera solamente el nodo, no el pase que contiene
+-desenlaza el nodo y deja su sig en NULL; no libera memoria ni toca el pase
 -retorna 1 si lo quito y 0 si la fila es NULL o no encontro el codigo
 */
 int quitarDeFila(struct Fila *fila, int codigoPase) {
@@ -148,9 +148,7 @@ int quitarDeFila(struct Fila *fila, int codigoPase) {
 
     /* Conserva anterior para reconectar la lista al encontrar el pase. */
     rec = fila->head;
-    while (rec != NULL &&
-           (rec->paseVigente == NULL ||
-            rec->paseVigente->codigo != codigoPase)) {
+    while (rec != NULL && (rec->paseVigente == NULL || rec->paseVigente->codigo != codigoPase)) {
         anterior = rec;
         rec = rec->sig;
     }
@@ -167,15 +165,15 @@ int quitarDeFila(struct Fila *fila, int codigoPase) {
     if (fila->tail == rec) {
         fila->tail = anterior;
     }
-    /* El nodo no es propietario del pase, por eso solo se libera el nodo. */
-    free(rec);
+    /* El nodo sale aislado de la fila; el pase que apunta no se toca. */
+    rec->sig = NULL;
     return 1;
 }
 
 /*
--libera todos los nodos enlazados a la fila
+-desenlaza todos los nodos de la fila, dejando el sig de cada uno en NULL
 -deja head y tail en NULL para que la fila pueda reutilizarse
--no libera los pases apuntados por los nodos
+-no libera memoria ni toca los pases apuntados por los nodos
 -si fila es NULL, no realiza cambios
 */
 void vaciarFila(struct Fila *fila) {
@@ -186,25 +184,24 @@ void vaciarFila(struct Fila *fila) {
         return;
     }
 
-    /* Guarda el siguiente enlace antes de liberar cada nodo. */
+    /* Guarda el siguiente enlace antes de dejar en NULL el del nodo actual. */
     for (rec = fila->head; rec != NULL; rec = siguiente) {
         siguiente = rec->sig;
-        free(rec);
+        rec->sig = NULL;
     }
     fila->head = NULL;
     fila->tail = NULL;
 }
 
 /*
--libera completamente una fila
--primero libera sus nodos y despues la estructura de la fila
--no libera los pases apuntados por los nodos
+-deja la fila sin nodos para poder soltarla (no usa free)
+-desenlaza todos sus nodos; la estructura Fila no se libera
+-no toca los pases apuntados por los nodos
 -si fila es NULL, no realiza ninguna accion
 */
 void liberarFila(struct Fila *fila) {
     if (fila != NULL) {
-        /* Primero libera los nodos y luego la estructura que contiene extremos. */
+        /* Solo desenlaza los nodos; quien tenia la fila decide si la suelta. */
         vaciarFila(fila);
-        free(fila);
     }
 }

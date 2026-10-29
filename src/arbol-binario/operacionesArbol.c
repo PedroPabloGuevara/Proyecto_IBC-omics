@@ -5,6 +5,11 @@
 #include <stdlib.h>
 #include <limits.h>
 
+/*
+-retorna el nodo con el menor codigo de un subarbol (el mas a la izquierda)
+-se usa para encontrar el sucesor cuando se elimina un nodo con dos hijos
+-recibe la raiz del subarbol, que no debe ser NULL
+*/
 struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
     /* El sucesor minimo se encuentra siguiendo enlaces izquierdos. */
     while (raiz->izq != NULL) {
@@ -188,31 +193,29 @@ int descatalogarLibro(struct NodoLibro *raiz, int codigo,
 }
 
 /*
--libera toda la memoria dinamica de un libro
--primero libera los 4 textos y al final el struct, porque si se libera el struct antes ya no se puede acceder a sus textos
--NO libera el nodo del arbol: eso lo hace eliminarLibro
+-deja un libro desvinculado de sus datos, sin usar free
+-vacia su cola de reservas y deja en NULL los 4 textos; el struct no se libera
+-NO toca el nodo del arbol: eso lo hace eliminarLibro
 */
 
 void liberarLibro(struct Libro *libro) {
 
-    /*si no hay libro, no hay nada que liberar*/
+    /*si no hay libro, no hay nada que desvincular*/
     if (libro == NULL) {
         return ;
     }
 
     vaciarCola(libro);
-    free(libro->nombre) ;
-    free(libro->publicacion) ;
-    free(libro->genero) ;
-    free(libro->fechaPublicacion) ;
-
-    free(libro) ; /*siempre al final*/
+    libro->nombre = NULL ;
+    libro->publicacion = NULL ;
+    libro->genero = NULL ;
+    libro->fechaPublicacion = NULL ;
 }
 
 /*
--elimina un libro del arbol segun su codigo y libera su memoria
+-elimina un libro del arbol segun su codigo y lo desvincula, sin usar free
 -recibe la raiz por doble puntero porque puede cambiar (por ejemplo, al eliminar la raiz)
--sin hijos o con un hijo: el padre pasa a apuntar al hijo (o a NULL) y se libera el nodo
+-sin hijos o con un hijo: el padre pasa a apuntar al hijo (o a NULL) y el nodo queda aislado con sus punteros en NULL
 -con dos hijos: se intercambian los libros entre el nodo y su sucesor (menor del subarbol derecho) y se elimina el sucesor, que tiene a lo mas un hijo
 -retorna 1 si se elimino, 0 si no existe un libro con ese codigo
 */
@@ -252,7 +255,10 @@ int eliminarLibro(struct NodoLibro **raiz, int codigo) {
         *raiz = aux->der ;
     }
 
-    liberarLibro(aux->dato) ;   /*libera el libro y sus textos*/
-    free(aux) ;                 /*libera el nodo*/
+    /*el nodo sale aislado: lo que apuntaba queda en NULL (no se usa free)*/
+    aux->izq = NULL ;
+    aux->der = NULL ;
+    liberarLibro(aux->dato) ;   /*vacia las reservas y deja en NULL los textos del libro*/
+    aux->dato = NULL ;
     return 1 ;
 }

@@ -86,7 +86,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
         return 0;
     }
 
-    /* Crea los recursos por etapas y revierte lo anterior si falla una asignacion. */
+    /* Crea los recursos por etapas; si falla una asignacion o el encolado, retorna 0. */
     reserva = crearReserva(cliente, pase->tipoPase);
     if (reserva == NULL) {
         return 0;
@@ -94,17 +94,15 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
 
     nodo = crearNodoReserva(reserva);
     if (nodo == NULL) {
-        free(reserva);
         return 0;
     }
 
     if (!encolar(libro, nodo)) {
-        free(nodo);
-        free(reserva);
         return 0;
     }
     return 1;
 }
+
 
 /*
 -agrega una reserva a la lista del libro segun su tipo de pase
@@ -128,7 +126,7 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         if (rec == nuevo ||
             (rec->dato != NULL && rec->dato->reservador != NULL &&
-             rec->dato->reservador->rut == nuevo->dato->reservador->rut)) {
+            rec->dato->reservador->rut == nuevo->dato->reservador->rut)) {
             return 0;
         }
     }
@@ -166,7 +164,7 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
 /*
 -atiende al primero de la cola: lo desengancha y lo retorna
 -si el libro es NULL o no tiene reservas, retorna NULL
--quien llama debe liberar el nodo y la reserva cuando termine de usarlos
+-quien llama decide que hace con el nodo y la reserva cuando termine de usarlos
 */
 struct NodoReserva *desencolar(struct Libro *libro) {
     struct NodoReserva *aux;
@@ -176,7 +174,7 @@ struct NodoReserva *desencolar(struct Libro *libro) {
     }
 
     /* se guarda el primero y se mueve head al nodo siguiente */
-    /* Retira head y separa el nodo para que quien llama lo pueda liberar. */
+    /* Retira head y deja el nodo desligado (sig en NULL) antes de retornarlo. */
     aux = libro->headReserva;
     libro->headReserva = aux->sig;
 
@@ -253,7 +251,7 @@ struct NodoReserva *buscarReserva(struct Libro *libro, int rut) {
 
 /*
 -elimina de la lista del libro la reserva de un cliente, este donde este
--libera el nodo y la reserva, pero NO al cliente
+-desenlaza el nodo y deja sus punteros en NULL, sin liberar memoria ni tocar al cliente
 -retorna 1 si la elimino, 0 si no estaba o el libro es NULL
 */
 int eliminarReserva(struct Libro *libro, int rut) {
@@ -283,14 +281,16 @@ int eliminarReserva(struct Libro *libro, int rut) {
         ant->sig = rec->sig;
     }
 
-    free(rec->dato);
-    free(rec);
+    /* El nodo sale aislado: lo que apuntaba queda en NULL. */
+    rec->sig = NULL;
+    rec->dato = NULL;
     return 1;
 }
 
 /*
--deja vacia la lista del libro liberando todos sus nodos y reservas
--el libro queda disponible para recibir nuevas reservas
+-deja vacia la lista del libro sin liberar memoria
+-deja el sig y el dato de cada nodo en NULL, de modo que quedan desligados
+-al final headReserva queda en NULL y el libro puede recibir nuevas reservas
 */
 void vaciarCola(struct Libro *libro) {
     struct NodoReserva *rec;
@@ -300,12 +300,12 @@ void vaciarCola(struct Libro *libro) {
         return;
     }
 
-    /* Guarda el siguiente nodo antes de liberar cada reserva y su envoltorio. */
+    /* Guarda el siguiente nodo antes de dejar en NULL los enlaces del actual. */
     rec = libro->headReserva;
     while (rec != NULL) {
         sig = rec->sig;
-        free(rec->dato);
-        free(rec);
+        rec->sig = NULL;
+        rec->dato = NULL;
         rec = sig;
     }
 
@@ -323,8 +323,7 @@ void vaciarCola(struct Libro *libro) {
 prioritario y la lista queda 3,1,2,4
 -retorna 1 si se modifico, 0 si el libro no esta en preventa, el cliente no tiene reserva o el pase no es valido
 */
-int modificarReserva(struct Libro *libro, struct Cliente *cliente,
-                     struct Pase *nuevoPase) {
+int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *nuevoPase) {
     struct NodoReserva *nodo;           /* nodo de la reserva que se quiere modificar */
     struct NodoReserva *ant = NULL;     /* nodo anterior, necesario para desenlazar */
     int esPaseDelCliente = 0;           /* 1 si el pase esta en el arreglo del cliente */
@@ -334,7 +333,7 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente,
     - el libro debe existir y estar en preventa (3), porque solo ahi hay reservas
     - el cliente debe existir y tener su arreglo de pases
     - el pase debe existir, estar activo (1) o utilizado (3) y tener tipo entre 1 y 4
-       son las mismas reglas de reservarLibro, para que ambas funciones sean coherentes */
+    son las mismas reglas de reservarLibro, para que ambas funciones sean coherentes */
     if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
         nuevoPase == NULL || libro->disponibilidad != 3 ||
         (nuevoPase->estado != 1 && nuevoPase->estado != 3) ||

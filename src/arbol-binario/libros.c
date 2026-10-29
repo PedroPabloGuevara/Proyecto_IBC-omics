@@ -122,10 +122,3 @@ struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo){
         return buscarLibro(raiz->der, codigo) ;
     }
 }
-
-
-/*
--retorna el nodo con el menor codigo de un subarbol (el mas a la izquierda)
--se usa para encontrar el sucesor cuando se elimina un nodo con dos hijos
--recibe la raiz del subarbol, que no debe ser NULL
-*/

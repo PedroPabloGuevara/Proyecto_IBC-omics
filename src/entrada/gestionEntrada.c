@@ -56,7 +56,6 @@ int solicitarIngreso(struct Tienda *tienda, struct Cliente *cliente,
         return 0;
     }
     if (!encolarFila(tienda->filaEntrada, nuevo)) {
-        free(nuevo);
         return 0;
     }
 
@@ -103,10 +102,9 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
     }
 
     if (actual >= cierre) {
-        /* Al cerrar, descarta todos los nodos pendientes sin liberar sus pases. */
+        /* Al cerrar, saca de la fila todos los nodos pendientes (quedan desligados). */
         while (tienda->filaEntrada->head != NULL) {
             nodo = desencolarFila(tienda->filaEntrada);
-            free(nodo);
             if (resultado != NULL) {
                 resultado->rechazados++;
             }
@@ -121,7 +119,6 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
         if (cliente == NULL ||
             !validarSolicitudFila(tienda, cliente, nodo->paseVigente, horaActual)) {
             nodo = desencolarFila(tienda->filaEntrada);
-            free(nodo);
             if (resultado != NULL) {
                 resultado->rechazados++;
             }
@@ -148,10 +145,10 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
 
             /* El registro es una copia: sobrevive si se elimina al cliente. */
             registro = crearPase(nodo->paseVigente->tipoPase,
-                                 nodo->paseVigente->codigo,
-                                 nodo->paseVigente->valor, 3,
-                                 nodo->paseVigente->fecha,
-                                 nodo->paseVigente->hora);
+                                nodo->paseVigente->codigo,
+                                nodo->paseVigente->valor, 3,
+                                nodo->paseVigente->fecha,
+                                nodo->paseVigente->hora);
             if (registro == NULL ||
                 !agregarPase(tienda->filaPasesDeldia, registro)) {
                 liberarPase(registro);
@@ -167,7 +164,6 @@ int procesarFila(struct Tienda *tienda, char *horaActual,
         }
 
         nodo = desencolarFila(tienda->filaEntrada);
-        free(nodo);
         if (resultado != NULL) {
             resultado->admitidos++;
         }
