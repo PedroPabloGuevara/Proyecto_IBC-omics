@@ -32,5 +32,7 @@ int quitarDeFila(struct Fila *fila, int codigoPase);
 /* Vaciar conserva la estructura; liberar tambien libera la estructura Fila. */
 void vaciarFila(struct Fila *fila);
 void liberarFila(struct Fila *fila);
+/* Muestra la fila en orden de atencion; no la modifica. */
+void mostrarFila(struct Fila *fila);
 
 #endif

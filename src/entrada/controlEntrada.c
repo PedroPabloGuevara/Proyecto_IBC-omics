@@ -12,8 +12,7 @@ int configurarControlAcceso(struct Tienda *tienda) {
     int apertura;
     int cierre;
 
-    if (tienda == NULL || tienda->filaEntrada != NULL ||
-        !validarFechaFila(tienda->fecha) ||
+    if (tienda == NULL || tienda->filaEntrada != NULL || !validarFechaFila(tienda->fecha) ||
         !validarHoraFila(tienda->hora_inicio, &apertura) ||
         !validarHoraFila(tienda->hora_termino, &cierre) ||
         cierre <= apertura) {

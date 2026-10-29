@@ -168,9 +168,9 @@ void listarPases(struct pasesDelDia *lista) {
     rec = lista->head;
     while (rec != NULL) {
         printf("Codigo: %d, Tipo: %d, Estado: %d, Fecha: %s, Hora: %s\n",
-               rec->paseVigente->codigo, rec->paseVigente->tipoPase,
-               rec->paseVigente->estado, rec->paseVigente->fecha,
-               rec->paseVigente->hora);
+            rec->paseVigente->codigo, rec->paseVigente->tipoPase,
+            rec->paseVigente->estado, rec->paseVigente->fecha,
+            rec->paseVigente->hora);
         rec = rec->sig;
     }
 }
@@ -204,8 +204,7 @@ int contarPasesPorEstado(struct pasesDelDia *lista, int estado) {
 */
 int paseValidoHoy(struct Pase *pase, char *fecha) {
     /* Comprueba la vigencia comparando las fechas almacenadas como texto. */
-    return pase != NULL && pase->fecha != NULL && fecha != NULL &&
-           strcmp(pase->fecha, fecha) == 0;
+    return pase != NULL && pase->fecha != NULL && fecha != NULL && strcmp(pase->fecha, fecha) == 0;
 }
 
 /*
