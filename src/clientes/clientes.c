@@ -34,12 +34,6 @@ struct Cliente *crearCliente(char *nombre, int rut)
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
-    nuevo->pases = malloc(MAXPASES * sizeof(*nuevo->pases));
-    if (nuevo->pases == NULL) {
-        free(nuevo->nombre);
-        free(nuevo);
-        return NULL;
-    }
     for(i=0; i<MAXPASES; i++)
     {
         nuevo->pases[i]=NULL;
@@ -122,7 +116,6 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     nodo = crearNodoCliente(cliente);
     if (nodo == NULL) {
         free(cliente->nombre);
-        free(cliente->pases);
         free(cliente);
         return 0;
     }
@@ -152,7 +145,6 @@ int registrarPaseCliente(struct Tienda *tienda, int rut, struct Pase *pase) {
 
     nodoCliente = buscarCliente(tienda->headClientes, rut);
     if (nodoCliente == NULL || nodoCliente->dato == NULL ||
-        nodoCliente->dato->pases == NULL ||
         buscarPase(tienda->filaPasesDeldia, pase->codigo) != NULL) {
         return 0;
     }
@@ -160,8 +152,7 @@ int registrarPaseCliente(struct Tienda *tienda, int rut, struct Pase *pase) {
     iterCliente = tienda->headClientes;
     if (iterCliente != NULL) {
         do {
-            if (iterCliente->dato != NULL &&
-                iterCliente->dato->pases != NULL) {
+            if (iterCliente->dato != NULL) {
                 for (i = 0; i < MAXPASES; i++) {
                     struct Pase *existente = iterCliente->dato->pases[i];
 
@@ -200,7 +191,7 @@ void liberarPasesClientes(struct NodoCliente *head) {
     }
 
     do {
-        if (actual->dato != NULL && actual->dato->pases != NULL) {
+        if (actual->dato != NULL) {
             for (i = 0; i < MAXPASES; i++) {
                 liberarPase(actual->dato->pases[i]);
                 actual->dato->pases[i] = NULL;
@@ -260,7 +251,7 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
     }
 
     c = nodo->dato;
-    if (c == NULL || c->pases == NULL) {
+    if (c == NULL) {
         return 0;
     }
 
@@ -374,7 +365,7 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     }
 
     /* no se si esta bien */
-    /* liberar memoria: pases restantes (anulados o vencidos), nombre, arreglo, cliente y nodo */
+    /* liberar memoria: pases restantes (anulados o vencidos), nombre, cliente y nodo */
     for (i = 0; i < MAXPASES; i++) {
         if (c->pases[i] != NULL) {
             free(c->pases[i]->fecha);
@@ -384,7 +375,6 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     }
 
     free(c->nombre);
-    free(c->pases);
     free(c);
     free(act);
 

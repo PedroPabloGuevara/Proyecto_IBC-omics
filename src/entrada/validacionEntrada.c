@@ -154,7 +154,7 @@ struct Cliente *buscarClientePorPaseFila(struct Tienda *tienda,
     /* Recorre la lista hasta volver al primer cliente. */
     nodoCliente = tienda->headClientes;
     do {
-        if (nodoCliente->dato != NULL && nodoCliente->dato->pases != NULL) {
+        if (nodoCliente->dato != NULL) {
             for (i = 0; i < MAXPASES; i++) {
                 if (nodoCliente->dato->pases[i] == pase) {
                     return nodoCliente->dato;

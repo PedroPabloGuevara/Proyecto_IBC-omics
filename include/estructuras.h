@@ -1,6 +1,8 @@
 #ifndef ESTRUCTURAS_H
 #define ESTRUCTURAS_H
 
+#define MAXPASES 50
+
 struct Pase {
     int tipoPase;
     int codigo;
@@ -32,7 +34,7 @@ struct Fila {
 
 struct Cliente {
     char *nombre;
-    struct Pase **pases;
+    struct Pase *pases[MAXPASES];
     int rut;
     int plibrepases;
 };

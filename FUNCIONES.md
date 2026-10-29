@@ -171,10 +171,11 @@ Archivo: [src/clientes/clientes.c](./src/clientes/clientes.c).
 
 ### `crearCliente`
 
-Crea un cliente, copia su nombre, guarda el RUT y reserva espacio para
-`MAXPASES` punteros a pases. Inicializa todas las posiciones a `NULL` y el
-contador de pases a cero. Retorna el cliente o `NULL` si el nombre es nulo o
-falla una asignacion. Quien crea el cliente debe liberar su memoria al eliminarlo.
+Crea un cliente, copia su nombre, guarda el RUT y usa el arreglo fijo de
+`MAXPASES` punteros a pases que forma parte del struct. Inicializa todas las
+posiciones a `NULL` y el contador de pases a cero; no reserva memoria separada
+para el arreglo. Retorna el cliente o `NULL` si el nombre es nulo o falla una
+asignacion. Quien crea el cliente debe liberar su memoria al eliminarlo.
 
 ### `crearNodoCliente`
 
@@ -546,9 +547,9 @@ Crea un nodo desligado que contiene una reserva. No copia la reserva. Retorna
 ### `reservarLibro`
 
 Valida que libro y cliente existan, que el libro este en preventa, que el pase
-sea activo o utilizado y de tipo `1..4`, que el cliente tenga arreglo de pases y
-que no tenga otra reserva del mismo libro. Exige que el pase sea exactamente uno
-de los punteros asociados al cliente. Crea reserva y nodo y llama a `encolar`;
+sea activo o utilizado y de tipo `1..4`, y que el cliente no tenga otra reserva
+del mismo libro. Exige que el pase sea exactamente uno de los punteros del
+arreglo fijo del cliente. Crea reserva y nodo y llama a `encolar`;
 si falla alguna asignacion o el encolado, libera las asignaciones parciales.
 Retorna `1` al reservar y `0` si rechaza la solicitud.
 

@@ -219,11 +219,11 @@ void probarProteccionesDeEliminacionYDespachos(void) {
  */
 static void probarCasosLimiteDeReservas(void) {
     struct Cliente clientes[5] = {
-        {"Uno", NULL, 1001, 0},
-        {"Dos", NULL, 1002, 0},
-        {"Tres", NULL, 1003, 0},
-        {"Cuatro", NULL, 1004, 0},
-        {"Ajeno", NULL, 1005, 0}
+        {"Uno", {NULL}, 1001, 0},
+        {"Dos", {NULL}, 1002, 0},
+        {"Tres", {NULL}, 1003, 0},
+        {"Cuatro", {NULL}, 1004, 0},
+        {"Ajeno", {NULL}, 1005, 0}
     };
     struct Pase pases[5] = {
         {2, 1, 0, 1, NULL, NULL},
@@ -236,7 +236,6 @@ static void probarCasosLimiteDeReservas(void) {
     struct Pase paseVencido = {2, 7, 0, 4, NULL, NULL};
     struct Pase paseTipoInvalido = {5, 8, 0, 1, NULL, NULL};
     struct Pase paseTipoCero = {0, 9, 0, 1, NULL, NULL};
-    struct Pase *pasesPorCliente[5][MAXPASES] = {{0}};
     struct Libro *preventa =
         crearLibro(101, "Preventa", 500, 0, "Edicion", 0, 3,
                    "Drama", "01/01/2020", 0);
@@ -259,24 +258,19 @@ static void probarCasosLimiteDeReservas(void) {
     /* Prepara clientes y credenciales sin asignaciones dinamicas de prueba. */
     assert(preventa != NULL && disponible != NULL);
 
-    pasesPorCliente[0][0] = &pases[0];
-    pasesPorCliente[1][0] = &pases[1];
-    pasesPorCliente[2][0] = &pases[2];
-    pasesPorCliente[3][0] = &pases[3];
-    pasesPorCliente[4][0] = &pases[4];
-    clientes[0].pases = pasesPorCliente[0];
-    clientes[1].pases = pasesPorCliente[1];
-    clientes[2].pases = pasesPorCliente[2];
-    clientes[3].pases = pasesPorCliente[3];
-    clientes[4].pases = pasesPorCliente[4];
+    clientes[0].pases[0] = &pases[0];
+    clientes[1].pases[0] = &pases[1];
+    clientes[2].pases[0] = &pases[2];
+    clientes[3].pases[0] = &pases[3];
+    clientes[4].pases[0] = &pases[4];
 
     /* Rechaza punteros ausentes, pases ajenos, estados invalidos y tipo incorrecto. */
     assert(reservarLibro(NULL, &clientes[0], &pases[0]) == 0);
     assert(reservarLibro(preventa, NULL, &pases[0]) == 0);
     assert(reservarLibro(preventa, &clientes[0], NULL) == 0);
-    clientes[4].pases = NULL;
+    clientes[4].pases[0] = NULL;
     assert(reservarLibro(preventa, &clientes[4], &pases[4]) == 0);
-    clientes[4].pases = pasesPorCliente[4];
+    clientes[4].pases[0] = &pases[4];
 
     assert(reservarLibro(preventa, &clientes[0], &pases[4]) == 0);
     assert(reservarLibro(preventa, &clientes[0], &paseAnulado) == 0);
@@ -344,14 +338,12 @@ static void probarVentaYCancelacionDeReserva(void) {
     struct Tienda tienda = {0};
     struct Cliente cliente = {0};
     struct Pase pase = {3, 7001, 0, 1, "29/10/2026", "10:00"};
-    struct Pase *pases[MAXPASES] = {NULL};
     struct Libro *libro;
     struct NodoLibro *raiz;
     struct NodoLibro *nodo;
 
     cliente.rut = 700;
-    cliente.pases = pases;
-    pases[0] = &pase;
+    cliente.pases[0] = &pase;
     libro = crearLibro(701, "Reserva", 750, 0, "Edicion", 0, 3,
                        "Prueba", "01/01/2020", 0);
     assert(libro != NULL);

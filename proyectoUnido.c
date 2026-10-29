@@ -32,7 +32,7 @@ struct Fila {
 
 struct Cliente {
     char *nombre;
-    struct Pase **pases;
+    struct Pase *pases[MAXPASES];
     int rut;
     int plibrepases;
 
@@ -307,12 +307,6 @@ struct Cliente *crearCliente(char *nombre, int rut)
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
 
-    nuevo->pases = malloc(MAXPASES * sizeof(*nuevo->pases));
-    if (nuevo->pases == NULL) {
-        free(nuevo->nombre);
-        free(nuevo);
-        return NULL;
-    }
     for(i=0; i<MAXPASES; i++)
     {
         nuevo->pases[i]=NULL;
@@ -395,7 +389,6 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     nodo = crearNodoCliente(cliente);
     if (nodo == NULL) {
         free(cliente->nombre);
-        free(cliente->pases);
         free(cliente);
         return 0;
     }
@@ -475,7 +468,6 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
         liberarPase(cliente->pases[i]);
     }
     free(cliente->nombre);
-    free(cliente->pases);
     free(cliente);
     free(act);
     return 1;
@@ -1461,8 +1453,8 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
     int i;
 
     /* Valida el estado del libro, la credencial y que no exista otra reserva. */
-    if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
-        pase == NULL || libro->disponibilidad != 3 ||
+    if (libro == NULL || cliente == NULL || pase == NULL ||
+        libro->disponibilidad != 3 ||
         (pase->estado != 1 && pase->estado != 3) ||
         pase->tipoPase < 1 || pase->tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
@@ -1705,8 +1697,8 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
     - el cliente debe existir y tener su arreglo de pases
     - el pase debe existir, estar activo (1) o utilizado (3) y tener tipo entre 1 y 4
     son las mismas reglas de reservarLibro, para que ambas funciones sean coherentes */
-    if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
-        nuevoPase == NULL || libro->disponibilidad != 3 ||
+    if (libro == NULL || cliente == NULL || nuevoPase == NULL ||
+        libro->disponibilidad != 3 ||
         (nuevoPase->estado != 1 && nuevoPase->estado != 3) ||
         nuevoPase->tipoPase < 1 || nuevoPase->tipoPase > 4) {
         return 0;

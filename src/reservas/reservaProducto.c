@@ -67,8 +67,8 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
     int i;
 
     /* Valida el estado del libro, la credencial y que no exista otra reserva. */
-    if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
-        pase == NULL || libro->disponibilidad != 3 ||
+    if (libro == NULL || cliente == NULL || pase == NULL ||
+        libro->disponibilidad != 3 ||
         (pase->estado != 1 && pase->estado != 3) ||
         pase->tipoPase < 1 || pase->tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
@@ -336,8 +336,8 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
     - el cliente debe existir y tener su arreglo de pases
     - el pase debe existir, estar activo (1) o utilizado (3) y tener tipo entre 1 y 4
     son las mismas reglas de reservarLibro, para que ambas funciones sean coherentes */
-    if (libro == NULL || cliente == NULL || cliente->pases == NULL ||
-        nuevoPase == NULL || libro->disponibilidad != 3 ||
+    if (libro == NULL || cliente == NULL || nuevoPase == NULL ||
+        libro->disponibilidad != 3 ||
         (nuevoPase->estado != 1 && nuevoPase->estado != 3) ||
         nuevoPase->tipoPase < 1 || nuevoPase->tipoPase > 4) {
         return 0;

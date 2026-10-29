@@ -3,9 +3,6 @@
 
 #include "estructuras.h"
 
-/* Maximo de pases diarios almacenados por cliente. */
-#define MAXPASES 50
-
 struct Cliente *crearCliente(char *nombre, int rut);
 struct NodoCliente *crearNodoCliente(struct Cliente *dato);
 struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut);

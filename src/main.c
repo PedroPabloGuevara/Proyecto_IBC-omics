@@ -85,7 +85,7 @@ static int leerTexto(const char *mensaje, char *texto, size_t capacidad) {
 static struct Pase *buscarPaseCliente(struct Cliente *cliente, int codigo) {
     int i;
 
-    if (cliente == NULL || cliente->pases == NULL) {
+    if (cliente == NULL) {
         return NULL;
     }
     for (i = 0; i < MAXPASES; i++) {
@@ -695,12 +695,9 @@ static void liberarCliente(struct Cliente *cliente) {
     if (cliente == NULL) {
         return;
     }
-    if (cliente->pases != NULL) {
-        for (i = 0; i < MAXPASES; i++) {
-            liberarPase(cliente->pases[i]);
-        }
+    for (i = 0; i < MAXPASES; i++) {
+        liberarPase(cliente->pases[i]);
     }
-    free(cliente->pases);
     free(cliente->nombre);
     free(cliente);
 }
