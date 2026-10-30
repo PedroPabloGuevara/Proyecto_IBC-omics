@@ -40,7 +40,8 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
         publicacion == NULL || genero == NULL || fechaPublicacion == NULL ||
         disponibilidad < 1 || disponibilidad > 4 ||
         (disponibilidad == 1 && ejemplares == 0) ||
-        ((disponibilidad == 2 || disponibilidad == 3) && ejemplares != 0)) {
+        (disponibilidad == 2 && ejemplares != 0) ||
+        (disponibilidad == 3 && ejemplares == 0)) {
         return NULL;
     }
 

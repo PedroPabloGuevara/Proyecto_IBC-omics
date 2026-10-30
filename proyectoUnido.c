@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 #define MAXPASES 50
 
 
@@ -281,6 +280,25 @@ int modificarSala(struct NodoSala **headSalas, int codigo, int nuevoCodigo,int n
     return 1;
 }
 
+int cancelarReserva(struct Libro *libro, int rut) {
+    if (libro == NULL || libro->disponibilidad == 4 ||
+        libro->ejemplaresDisponibles < 0 ||
+        (unsigned int)libro->ejemplaresDisponibles >=
+            ((unsigned int)-1 >> 1) ||
+        buscarReserva(libro, rut) == NULL) {
+        return 0;
+    }
+
+    if (!eliminarReserva(libro, rut)) {
+        return 0;
+    }
+    libro->ejemplaresDisponibles++;
+    if (libro->disponibilidad == 2) {
+        libro->disponibilidad = 1;
+    }
+    return 1;
+}
+
 /*=======================================================================================================*/
 
 /*funciones cliente*/
@@ -396,7 +414,7 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     return 1;
 }
 
-static int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
+int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
     if (raiz == NULL) {
         return 0;
     }
@@ -442,12 +460,6 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     for (sala = tienda->headSalas; sala != NULL; sala = sala->sig) {
         if (tieneReservaArbol(sala->dato->raiz, rut)) {
             return -3;
-        }
-    }
-
-    for (i = 0; i < MAXPASES; i++) {
-        if (cliente->pases[i] != NULL && cliente->pases[i]->estado == 1) {
-            return -4;
         }
     }
 
@@ -983,7 +995,8 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
         publicacion == NULL || genero == NULL || fechaPublicacion == NULL ||
         disponibilidad < 1 || disponibilidad > 4 ||
         (disponibilidad == 1 && ejemplares == 0) ||
-        ((disponibilidad == 2 || disponibilidad == 3) && ejemplares != 0)) {
+        (disponibilidad == 2 && ejemplares != 0) ||
+        (disponibilidad == 3 && ejemplares == 0)) {
         return NULL;
     }
 
@@ -1202,7 +1215,8 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
     }
 
     if (cantidad <= 0 || nodo->dato->ejemplaresDisponibles < 0 ||
-        nodo->dato->ejemplaresDisponibles > INT_MAX - cantidad) {
+        (unsigned int)nodo->dato->ejemplaresDisponibles >
+            ((unsigned int)-1 >> 1) - (unsigned int)cantidad) {
         return 0 ; /*cantidad invalida*/
     }
 
@@ -1221,63 +1235,65 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
     return 1 ; /*despacho registrado*/
 }
 
-static int registrarVenta(struct Tienda *tienda, struct Libro *libro,
-                          int cantidad, int rut, int tieneComprador) {
+int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz,
+                     int codigo, int rut, int cantidad) {
+    struct NodoLibro *nodo;
+    struct Libro *libro;
     int unidadesVendidas;
     int ingreso;
     int reservasPendientes;
 
-    if (tienda == NULL || libro == NULL || cantidad <= 0 ||
-        libro->disponibilidad != 1 || libro->ejemplaresDisponibles <= 0 ||
-        libro->precio < 0 || tienda->recaudacion < 0) {
+    if (tienda == NULL || cantidad <= 0 ||
+        (nodo = buscarLibro(raiz, codigo)) == NULL) {
+        return 0;
+    }
+    libro = nodo->dato;
+
+    if (libro == NULL || libro->precio < 0 ||
+        tienda->recaudacion < 0) {
         return 0;
     }
 
     reservasPendientes = libro->headReserva != NULL;
-    if (reservasPendientes &&
-        (!tieneComprador || libro->headReserva->dato == NULL ||
-         libro->headReserva->dato->reservador == NULL ||
-         libro->headReserva->dato->reservador->rut != rut)) {
+    if (reservasPendientes) {
+        if ((libro->disponibilidad != 1 && libro->disponibilidad != 3) ||
+            libro->headReserva->dato == NULL ||
+            libro->headReserva->dato->reservador == NULL ||
+            libro->headReserva->dato->reservador->rut != rut) {
+            return 0;
+        }
+    } else if (libro->disponibilidad != 1 ||
+               libro->ejemplaresDisponibles <= 0) {
         return 0;
     }
 
-    unidadesVendidas = cantidad;
-    if (unidadesVendidas > libro->ejemplaresDisponibles) {
+    unidadesVendidas = reservasPendientes ? 1 : cantidad;
+    if (!reservasPendientes &&
+        unidadesVendidas > libro->ejemplaresDisponibles) {
         unidadesVendidas = libro->ejemplaresDisponibles;
     }
-    if (reservasPendientes && unidadesVendidas > 1) {
-        unidadesVendidas = 1;
-    }
     if (libro->precio > 0 &&
-        unidadesVendidas > (INT_MAX - tienda->recaudacion) / libro->precio) {
+        (unsigned int)unidadesVendidas >
+            (((unsigned int)-1 >> 1) -
+             (unsigned int)tienda->recaudacion) /
+                (unsigned int)libro->precio) {
         return 0;
     }
 
     ingreso = unidadesVendidas * libro->precio;
-    libro->ejemplaresDisponibles -= unidadesVendidas;
+    if (!reservasPendientes) {
+        libro->ejemplaresDisponibles -= unidadesVendidas;
+    }
     tienda->recaudacion += ingreso;
     if (reservasPendientes) {
         eliminarReserva(libro, rut);
     }
-    if (libro->ejemplaresDisponibles == 0) {
-        libro->disponibilidad = 2;
+    if (libro->headReserva == NULL) {
+        libro->disponibilidad =
+            libro->ejemplaresDisponibles == 0 ? 2 : 1;
     }
 
     return unidadesVendidas;
-}
-
-int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz,
-                     int codigo, int rut, int cantidad) {
-    struct NodoLibro *nodo;
-
-    if (tienda == NULL || cantidad <= 0) {
-        return 0;
-    }
-    nodo = buscarLibro(raiz, codigo);
-    if (nodo == NULL) {
-        return 0;
-    }
-    return registrarVenta(tienda, nodo->dato, cantidad, rut, 1);
 }
 
 /*
@@ -1454,7 +1470,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
 
     /* Valida el estado del libro, la credencial y que no exista otra reserva. */
     if (libro == NULL || cliente == NULL || pase == NULL ||
-        libro->disponibilidad != 3 ||
+        libro->disponibilidad != 3 || libro->ejemplaresDisponibles <= 0 ||
         (pase->estado != 1 && pase->estado != 3) ||
         pase->tipoPase < 1 || pase->tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
@@ -1489,6 +1505,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
         free(reserva);
         return 0;
     }
+    libro->ejemplaresDisponibles--;
     return 1;
 }
 
@@ -1971,7 +1988,7 @@ void liberarFila(struct Fila *fila) {
 }
 /*=======================================================================================================*/
 
-static int limpiarLineaEntrada(void) {
+int limpiarLineaEntrada(void) {
     int caracter;
 
     while ((caracter = getchar()) != '\n' && caracter != EOF) {
@@ -2269,7 +2286,6 @@ int main(void) {
                         else if (resultado == -1) printf("No se puede eliminar: tiene un pase en la fila\n");
                         else if (resultado == -2) printf("No se puede eliminar: tiene un pase que ya ingreso\n");
                         else if (resultado == -3) printf("No se puede eliminar: tiene una reserva pendiente\n");
-                        else if (resultado == -4) printf("No se puede eliminar: tiene pases activos\n");
                         else printf("No se encontro el cliente\n");
                         break;
                     case 4:
@@ -2437,7 +2453,7 @@ int main(void) {
                         /* La cancelacion no altera el stock ni la recaudacion. */
                         printf("Rut del cliente: ");
                         scanf("%d", &rut);
-                        if (eliminarReserva(libro, rut) == 1) {
+                        if (cancelarReserva(libro, rut) == 1) {
                             printf("Reserva cancelada\n");
                         } else {
                             printf("El cliente no tiene reserva en este libro\n");
@@ -2639,7 +2655,7 @@ int main(void) {
                         scanf("%d", &deColeccion);
                         libro = crearLibro(codigoLibro, nombreLibro, precioLibro, ejemplares, publicacion, clasificacionEdad, disponibilidad, genero, fechaPublicacion, deColeccion);
                         if (libro == NULL) {
-                            printf("Datos invalidos o sin memoria (preventa y agotado exigen 0 ejemplares, disponible exige al menos 1)\n");
+                            printf("Datos invalidos o sin memoria (agotado exige 0 ejemplares; disponible y preventa exigen al menos 1)\n");
                             break;
                         }
                         nodoLibro = crearNodoLibro(libro);

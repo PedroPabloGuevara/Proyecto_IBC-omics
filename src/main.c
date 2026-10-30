@@ -9,19 +9,20 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define TAM_ENTRADA 256
 
-static int entradaTerminada;
+int entradaTerminada;
 
-static int leerEntero(const char *mensaje, int *valor) {
+int leerEntero(const char *mensaje, int *valor) {
     char texto[TAM_ENTRADA];
     char *fin;
     long numero;
+    long maximoInt = (long)((unsigned int)-1 >> 1);
+    long minimoInt = -maximoInt - 1;
     size_t largo;
     int caracter;
 
@@ -44,7 +45,7 @@ static int leerEntero(const char *mensaje, int *valor) {
         fin++;
     }
     if (fin == texto || *fin != '\0' || errno == ERANGE ||
-        numero < INT_MIN || numero > INT_MAX) {
+        numero < minimoInt || numero > maximoInt) {
         printf("Numero invalido\n");
         return 0;
     }
@@ -53,7 +54,7 @@ static int leerEntero(const char *mensaje, int *valor) {
     return 1;
 }
 
-static int leerTexto(const char *mensaje, char *texto, size_t capacidad) {
+int leerTexto(const char *mensaje, char *texto, size_t capacidad) {
     size_t largo;
     int caracter;
 
@@ -82,7 +83,7 @@ static int leerTexto(const char *mensaje, char *texto, size_t capacidad) {
     return 1;
 }
 
-static struct Pase *buscarPaseCliente(struct Cliente *cliente, int codigo) {
+struct Pase *buscarPaseCliente(struct Cliente *cliente, int codigo) {
     int i;
 
     if (cliente == NULL) {
@@ -97,7 +98,7 @@ static struct Pase *buscarPaseCliente(struct Cliente *cliente, int codigo) {
     return NULL;
 }
 
-static int registrarPase(struct Tienda *tienda, struct Cliente *cliente) {
+int registrarPase(struct Tienda *tienda, struct Cliente *cliente) {
     char horaCompra[16];
     int tipo;
     int codigo;
@@ -128,8 +129,8 @@ static int registrarPase(struct Tienda *tienda, struct Cliente *cliente) {
     return 1;
 }
 
-static void gestionarPasesCliente(struct Tienda *tienda,
-                                  struct Cliente *cliente) {
+void gestionarPasesCliente(struct Tienda *tienda,
+                           struct Cliente *cliente) {
     int opcion;
     int codigo;
     int tipo;
@@ -196,7 +197,7 @@ static void gestionarPasesCliente(struct Tienda *tienda,
     }
 }
 
-static void menuClientes(struct Tienda *tienda) {
+void menuClientes(struct Tienda *tienda) {
     char nombre[100];
     int opcion;
     int rut;
@@ -263,9 +264,6 @@ static void menuClientes(struct Tienda *tienda) {
         case -3:
             printf("No se puede eliminar: tiene una reserva pendiente\n");
             break;
-        case -4:
-            printf("No se puede eliminar: tiene pases activos\n");
-            break;
         default:
             printf("No se encontro el cliente\n");
             break;
@@ -280,7 +278,7 @@ static void menuClientes(struct Tienda *tienda) {
     }
 }
 
-static void liberarArbolLibros(struct NodoLibro *raiz) {
+void liberarArbolLibros(struct NodoLibro *raiz) {
     if (raiz == NULL) {
         return;
     }
@@ -290,7 +288,7 @@ static void liberarArbolLibros(struct NodoLibro *raiz) {
     free(raiz);
 }
 
-static void liberarSalaCompleta(struct SalaTematica *sala) {
+void liberarSalaCompleta(struct SalaTematica *sala) {
     if (sala == NULL) {
         return;
     }
@@ -299,7 +297,7 @@ static void liberarSalaCompleta(struct SalaTematica *sala) {
     free(sala);
 }
 
-static void menuSalas(struct Tienda *tienda) {
+void menuSalas(struct Tienda *tienda) {
     char tematica[100];
     int opcion;
     int codigo;
@@ -374,7 +372,7 @@ static void menuSalas(struct Tienda *tienda) {
     printf("Sala y sus libros eliminados\n");
 }
 
-static struct NodoSala *seleccionarSala(struct Tienda *tienda) {
+struct NodoSala *seleccionarSala(struct Tienda *tienda) {
     int codigo;
 
     if (!leerEntero("Codigo de la sala: ", &codigo)) {
@@ -383,7 +381,7 @@ static struct NodoSala *seleccionarSala(struct Tienda *tienda) {
     return buscarSala(tienda->headSalas, codigo);
 }
 
-static void crearLibroEnSala(struct SalaTematica *sala) {
+void crearLibroEnSala(struct SalaTematica *sala) {
     char nombre[100];
     char editorial[100];
     char genero[100];
@@ -433,7 +431,7 @@ static void crearLibroEnSala(struct SalaTematica *sala) {
     printf("Libro agregado\n");
 }
 
-static void mostrarLibro(struct NodoLibro *nodo) {
+void mostrarLibro(struct NodoLibro *nodo) {
     struct Libro *libro = nodo->dato;
 
     printf("Codigo: %d, nombre: %s, precio: %d, stock: %d, disponibilidad: %d, editorial: %s, genero: %s, fecha: %s\n",
@@ -442,7 +440,7 @@ static void mostrarLibro(struct NodoLibro *nodo) {
            libro->publicacion, libro->genero, libro->fechaPublicacion);
 }
 
-static void menuLibros(struct Tienda *tienda) {
+void menuLibros(struct Tienda *tienda) {
     int opcion;
     int codigo;
     int valor;
@@ -540,7 +538,7 @@ static void menuLibros(struct Tienda *tienda) {
     }
 }
 
-static void menuReservas(struct Tienda *tienda) {
+void menuReservas(struct Tienda *tienda) {
     int opcion;
     int codigoLibro;
     int rut;
@@ -640,15 +638,15 @@ static void menuReservas(struct Tienda *tienda) {
             reserva = buscarReserva(nodoLibro->dato, rut);
             printf(reserva == NULL
                        ? "El cliente no tiene una reserva\n"
-                       : "Venta rechazada: debe atenderse primero la reserva prioritaria y debe haber stock\n");
+                       : "Venta rechazada: debe atenderse primero la reserva prioritaria\n");
         }
         break;
     case 6:
         if (!leerEntero("RUT del cliente reservado: ", &rut)) {
             return;
         }
-        printf(eliminarReserva(nodoLibro->dato, rut)
-                   ? "Reserva cancelada; el stock y la recaudacion no cambian\n"
+        printf(cancelarReserva(nodoLibro->dato, rut)
+                   ? "Reserva cancelada; el stock fue restaurado y la recaudacion no cambia\n"
                    : "El cliente no tiene una reserva\n");
         break;
     default:
@@ -656,7 +654,7 @@ static void menuReservas(struct Tienda *tienda) {
     }
 }
 
-static void menuIngreso(struct Tienda *tienda) {
+void menuIngreso(struct Tienda *tienda) {
     char horaActual[16];
     int rut;
     int codigoPase;
@@ -689,7 +687,7 @@ static void menuIngreso(struct Tienda *tienda) {
     }
 }
 
-static void liberarCliente(struct Cliente *cliente) {
+void liberarCliente(struct Cliente *cliente) {
     int i;
 
     if (cliente == NULL) {
@@ -702,7 +700,7 @@ static void liberarCliente(struct Cliente *cliente) {
     free(cliente);
 }
 
-static void liberarClientes(struct NodoCliente *head) {
+void liberarClientes(struct NodoCliente *head) {
     struct NodoCliente *actual;
 
     if (head == NULL) {

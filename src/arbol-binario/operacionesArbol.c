@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
+
 
 /*
 -retorna el nodo con el menor codigo de un subarbol (el mas a la izquierda)
@@ -139,7 +139,8 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
     }
 
     if (cantidad <= 0 || nodo->dato->ejemplaresDisponibles < 0 ||
-        nodo->dato->ejemplaresDisponibles > INT_MAX - cantidad) {
+        (unsigned int)nodo->dato->ejemplaresDisponibles >
+            ((unsigned int)-1 >> 1) - (unsigned int)cantidad) {
         return 0 ; /*cantidad invalida*/
     }
 

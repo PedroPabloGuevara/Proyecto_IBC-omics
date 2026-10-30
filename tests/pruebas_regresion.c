@@ -8,7 +8,6 @@
 #include "../include/salas.h"
 
 #include <assert.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -152,11 +151,12 @@ void probarProteccionesDeEliminacionYDespachos(void) {
     free(nodoReservaRechazado);
     free(reservaRechazada);
     assert(reservarLibro(libroUno, nodoCliente->dato, ticket) == 0);
-    libroDos->ejemplaresDisponibles = 0;
+    libroDos->ejemplaresDisponibles = 1;
     libroDos->disponibilidad = 3;
     assert(reservarLibro(libroDos, nodoCliente->dato, ticket) == 1);
 
-    assert(recibirDespacho(sala->raiz, 10, INT_MAX) == 0);
+    assert(recibirDespacho(sala->raiz, 10,
+                           (int)((unsigned int)-1 >> 1)) == 0);
     assert(libroUno->ejemplaresDisponibles == 1);
 
     /* El registro diario usa una copia independiente del pase del cliente. */
@@ -165,16 +165,14 @@ void probarProteccionesDeEliminacionYDespachos(void) {
     assert(registro != NULL);
     assert(agregarPase(tienda.filaPasesDeldia, registro) == 1);
 
-    /* No permite eliminar mientras haya fila, ingresos, reservas o pases activos. */
+    /* No permite eliminar mientras haya fila, ingresos o reservas. */
     assert(eliminarCliente(&tienda, 456) == -1);
     assert(cantidadEnFila(tienda.filaEntrada) == 1);
     assert(quitarDeFila(tienda.filaEntrada, ticket->codigo) == 1);
     assert(eliminarCliente(&tienda, 456) == -2);
     assert(eliminarPaseDelDia(tienda.filaPasesDeldia, ticket->codigo) == 1);
     assert(eliminarCliente(&tienda, 456) == -3);
-    assert(eliminarReserva(libroDos, 456) == 1);
-    assert(eliminarCliente(&tienda, 456) == -4);
-    ticket->estado = 2;
+    assert(cancelarReserva(libroDos, 456) == 1);
     assert(eliminarCliente(&tienda, 456) == 1);
     assert(tienda.headClientes == NULL);
     assert(cantidadEnFila(tienda.filaEntrada) == 0);
@@ -203,7 +201,7 @@ void probarProteccionesDeEliminacionYDespachos(void) {
     assert(tienda.filaPasesDeldia == NULL);
 
     /* Libera los objetos restantes creados por este escenario de regresion. */
-    assert(eliminarReserva(libroDos, 789) == 1);
+    assert(cancelarReserva(libroDos, 789) == 1);
     assert(eliminarCliente(&tienda, 789) == 1);
     while (sala->raiz != NULL) {
         assert(eliminarLibro(&sala->raiz, sala->raiz->dato->codigo) == 1);
@@ -217,7 +215,7 @@ void probarProteccionesDeEliminacionYDespachos(void) {
  * Comprueba argumentos invalidos, titularidad del pase, orden estable de
  * prioridades, insercion, extraccion, eliminacion y vaciado de reservas.
  */
-static void probarCasosLimiteDeReservas(void) {
+void probarCasosLimiteDeReservas(void) {
     struct Cliente clientes[5] = {
         {"Uno", {NULL}, 1001, 0},
         {"Dos", {NULL}, 1002, 0},
@@ -237,7 +235,7 @@ static void probarCasosLimiteDeReservas(void) {
     struct Pase paseTipoInvalido = {5, 8, 0, 1, NULL, NULL};
     struct Pase paseTipoCero = {0, 9, 0, 1, NULL, NULL};
     struct Libro *preventa =
-        crearLibro(101, "Preventa", 500, 0, "Edicion", 0, 3,
+        crearLibro(101, "Preventa", 500, 6, "Edicion", 0, 3,
                    "Drama", "01/01/2020", 0);
     struct Libro *disponible =
         crearLibro(102, "Disponible", 500, 1, "Edicion", 0, 1,
@@ -334,7 +332,7 @@ static void probarCasosLimiteDeReservas(void) {
     liberarLibro(disponible);
 }
 
-static void probarVentaYCancelacionDeReserva(void) {
+void probarVentaYCancelacionDeReserva(void) {
     struct Tienda tienda = {0};
     struct Cliente cliente = {0};
     struct Pase pase = {3, 7001, 0, 1, "29/10/2026", "10:00"};
@@ -344,7 +342,7 @@ static void probarVentaYCancelacionDeReserva(void) {
 
     cliente.rut = 700;
     cliente.pases[0] = &pase;
-    libro = crearLibro(701, "Reserva", 750, 0, "Edicion", 0, 3,
+    libro = crearLibro(701, "Reserva", 750, 1, "Edicion", 0, 3,
                        "Prueba", "01/01/2020", 0);
     assert(libro != NULL);
     nodo = crearNodoLibro(libro);
@@ -352,29 +350,31 @@ static void probarVentaYCancelacionDeReserva(void) {
     raiz = NULL;
     assert(insertarLibro(&raiz, nodo) == 1);
 
-    /* Caso 6: cancelar una preventa no inventa stock ni registra ingresos. */
+    /* Caso 6: cancelar devuelve al stock la unidad reservada, sin ingresos. */
     assert(reservarLibro(libro, &cliente, &pase) == 1);
-    assert(eliminarReserva(libro, cliente.rut) == 1);
-    assert(cantidadEnEspera(libro) == 0);
     assert(libro->ejemplaresDisponibles == 0);
+    assert(cancelarReserva(libro, cliente.rut) == 1);
+    assert(cantidadEnEspera(libro) == 0);
+    assert(libro->ejemplaresDisponibles == 1);
     assert(tienda.recaudacion == 0);
 
     /* Caso 5: la venta solo atiende al titular que esta primero en la cola. */
     assert(reservarLibro(libro, &cliente, &pase) == 1);
+    assert(libro->ejemplaresDisponibles == 0);
     assert(recibirDespacho(raiz, libro->codigo, 1) == 1);
     assert(venderEjemplares(&tienda, raiz, libro->codigo, 999, 1) == 0);
     assert(cantidadEnEspera(libro) == 1);
     assert(venderEjemplares(&tienda, raiz, libro->codigo, cliente.rut, 1) == 1);
     assert(cantidadEnEspera(libro) == 0);
-    assert(libro->ejemplaresDisponibles == 0);
-    assert(libro->disponibilidad == 2);
+    assert(libro->ejemplaresDisponibles == 1);
+    assert(libro->disponibilidad == 1);
     assert(tienda.recaudacion == 750);
 
     assert(eliminarLibro(&raiz, libro->codigo) == 1);
     assert(raiz == NULL);
 }
 
-static void probarListaPases(void) {
+void probarListaPases(void) {
     struct ListaPases *lista = crearListaPases();
     struct Pase *primero = crearPase(1, 7101, 100, 1,
                                      "29/10/2026", "09:00");
@@ -401,7 +401,7 @@ static void probarListaPases(void) {
     liberarPase(segundo);
 }
 
-static void probarOperacionesPasesDelDia(void) {
+void probarOperacionesPasesDelDia(void) {
     struct pasesDelDia *lista = crearPasesDelDia();
     struct Pase *pase = crearPase(2, 9001, 1500, 3,
                                   "29/10/2026", "10:30");

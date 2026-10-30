@@ -68,7 +68,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
 
     /* Valida el estado del libro, la credencial y que no exista otra reserva. */
     if (libro == NULL || cliente == NULL || pase == NULL ||
-        libro->disponibilidad != 3 ||
+        libro->disponibilidad != 3 || libro->ejemplaresDisponibles <= 0 ||
         (pase->estado != 1 && pase->estado != 3) ||
         pase->tipoPase < 1 || pase->tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
@@ -103,6 +103,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
         free(reserva);
         return 0;
     }
+    libro->ejemplaresDisponibles--;
     return 1;
 }
 
@@ -287,6 +288,25 @@ int eliminarReserva(struct Libro *libro, int rut) {
     /* La cola es propietaria de la reserva y su nodo, no del cliente. */
     free(rec->dato);
     free(rec);
+    return 1;
+}
+
+int cancelarReserva(struct Libro *libro, int rut) {
+    if (libro == NULL || libro->disponibilidad == 4 ||
+        libro->ejemplaresDisponibles < 0 ||
+        (unsigned int)libro->ejemplaresDisponibles >=
+            ((unsigned int)-1 >> 1) ||
+        buscarReserva(libro, rut) == NULL) {
+        return 0;
+    }
+
+    if (!eliminarReserva(libro, rut)) {
+        return 0;
+    }
+    libro->ejemplaresDisponibles++;
+    if (libro->disponibilidad == 2) {
+        libro->disponibilidad = 1;
+    }
     return 1;
 }
 

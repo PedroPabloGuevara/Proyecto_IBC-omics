@@ -19,11 +19,11 @@ dia mediante `cerrarTienda`, muestra la recaudacion y libera los datos
 permanentes creados durante la ejecucion.
 
 La opcion 5 del menu de reservas registra la venta de una unidad reservada con
-`venderEjemplares`: solo permite atender al primer cliente de la cola, reduce
-el stock, actualiza la recaudacion y elimina la reserva. La opcion 6 cancela
-una reserva con `eliminarReserva`; no aumenta el stock ni modifica la
-recaudacion, ya que las reservas se hacen para libros en preventa, sin
-ejemplares disponibles.
+`venderEjemplares`: solo permite atender al primer cliente de la cola, actualiza
+la recaudacion y elimina la reserva; no vuelve a descontar el stock porque la
+unidad se aparto al reservar. La opcion 6 cancela una reserva con
+`cancelarReserva`, devuelve al stock la unidad apartada y no modifica la
+recaudacion.
 
 ## Libros y arbol binario
 
@@ -42,9 +42,9 @@ Recibe codigo, nombre, precio, cantidad de ejemplares, editorial, clasificacion
 por edad, disponibilidad, genero, fecha de publicacion y un indicador de
 coleccion. Rechaza codigos no positivos, textos nulos, precio o stock negativos,
 estados fuera de `1..4`, libros disponibles sin stock y libros agotados o en
-preventa con stock distinto de cero. Reserva el struct, copia sus textos y deja
-la cola de reservas vacia. Retorna el libro o `NULL` si los datos o la memoria
-no permiten crearlo. Un libro descatalogado puede conservar stock registrado.
+preventa sin stock. Reserva el struct, copia sus textos y deja la cola de
+reservas vacia. Retorna el libro o `NULL` si los datos o la memoria no permiten
+crearlo. Un libro descatalogado puede conservar stock registrado.
 
 ### `crearNodoLibro`
 
@@ -98,7 +98,8 @@ libro no existe o el precio es invalido.
 ### `recibirDespacho`
 
 Recibe la raiz, el codigo y una cantidad de ejemplares que llegan. Rechaza
-libros inexistentes, cantidades no positivas, sumas que excederian `INT_MAX` y
+libros inexistentes, cantidades no positivas, sumas que excedan el maximo
+representable por `int` y
 libros descatalogados. Al aceptar, suma la cantidad al stock; si el libro estaba
 agotado o en preventa, pasa a disponible. Retorna `1` si registra el despacho y
 `0` en caso contrario.
@@ -140,30 +141,20 @@ almacenado es negativo. No calcula de nuevo las ventas recorriendo los libros.
 Pone en cero el acumulador de la tienda. Si recibe `NULL`, no hace nada. Debe
 usarse solo cuando la operacion quiera reiniciar explicitamente ese total.
 
-### `registrarVenta`
-
-Funcion interna compartida por las dos funciones publicas de venta. Valida
-tienda, libro, cantidad, estado disponible, stock, precio y recaudacion. Si hay
-reservas, solo permite la venta al primer cliente de la cola y limita la venta a
-una unidad. Si no hay reservas, limita las unidades al stock disponible.
-Comprueba que el ingreso no desborde `int`; solo despues actualiza stock y
-recaudacion. Si la llamada identifica comprador, elimina su reserva. Marca
-agotado el libro cuando el stock llega a cero. Retorna unidades vendidas o `0`
-si no puede completar la operacion.
-
 ### `venderEjemplar`
 
-Busca el codigo en el arbol y solicita vender una unidad mediante
-`registrarVenta`. No identifica al comprador; por ello no puede satisfacer una
-reserva pendiente. Retorna `1` al vender o `0` si falta la tienda, el libro, el
-stock o la venta no es permitida.
+Solicita vender una unidad mediante `venderEjemplares`. No identifica al
+comprador; por ello no puede satisfacer una reserva pendiente. Retorna `1` al
+vender o `0` si falta la tienda, el libro, el stock o la venta no es permitida.
 
 ### `venderEjemplares`
 
-Valida tienda y cantidad, busca el libro y delega en `registrarVenta`, indicando
-el RUT del comprador. Puede vender hasta la cantidad solicitada y el stock, pero
-si existe una cola de reservas solo vende una unidad al primer cliente
-reservador. Retorna el numero vendido o `0` si no se vendio.
+Valida tienda, cantidad, stock, estado y recaudacion; busca el libro por codigo.
+Puede vender hasta la cantidad solicitada y el stock, pero si existe una cola
+de reservas solo vende una unidad al primer cliente reservador. Actualiza la
+recaudacion y elimina la reserva vendida; no descuenta de nuevo el stock porque
+la unidad ya se aparto al reservar. Retorna el numero vendido, o `0` si no se
+pudo vender.
 
 ## Clientes y pases asociados
 
@@ -228,12 +219,11 @@ eliminadas; una raiz nula aporta cero.
 ### `eliminarCliente`
 
 Busca el cliente y solo lo elimina si no conserva pases en la fila o en el
-registro diario, reservas pendientes ni pases activos. Si puede eliminarlo,
+registro diario ni reservas pendientes. Si puede eliminarlo,
 lo desenlaza de la lista circular y libera sus pases, nombre, arreglo, struct y
 nodo. No borra las copias independientes del registro diario. Retorna `1` si
 elimina al cliente, `0` si no existe o la tienda no es valida, `-1` si tiene un
-pase en la fila, `-2` si ya ingreso, `-3` si mantiene una reserva y `-4` si
-conserva pases activos.
+pase en la fila, `-2` si ya ingreso y `-3` si mantiene una reserva.
 
 ### `eliminarPase`
 
@@ -548,9 +538,10 @@ Crea un nodo desligado que contiene una reserva. No copia la reserva. Retorna
 
 Valida que libro y cliente existan, que el libro este en preventa, que el pase
 sea activo o utilizado y de tipo `1..4`, y que el cliente no tenga otra reserva
-del mismo libro. Exige que el pase sea exactamente uno de los punteros del
-arreglo fijo del cliente. Crea reserva y nodo y llama a `encolar`;
-si falla alguna asignacion o el encolado, libera las asignaciones parciales.
+del mismo libro. Requiere que haya stock y que el pase sea exactamente uno de
+los punteros del arreglo fijo del cliente. Crea reserva y nodo y llama a
+`encolar`; al completar el encolado descuenta del stock la unidad apartada. Si
+falla alguna asignacion o el encolado, libera las asignaciones parciales.
 Retorna `1` al reservar y `0` si rechaza la solicitud.
 
 ### `encolar`
@@ -588,7 +579,15 @@ que tengan datos incompletos.
 
 Busca una reserva por RUT y la desenlaza desde la cabeza o desde su nodo
 anterior. Libera el nodo y la reserva, pero no al cliente referenciado. Retorna
-`1` si elimina y `0` si el libro es nulo o no hay coincidencia.
+`1` si elimina y `0` si el libro es nulo o no hay coincidencia. No restaura
+stock; para una cancelacion solicitada en el menu se usa `cancelarReserva`.
+
+### `cancelarReserva`
+
+Elimina la reserva por RUT y devuelve al stock el ejemplar que se habia
+apartado. Si el libro estaba agotado, pasa a disponible. No altera la
+recaudacion. Retorna `1` si cancela y `0` si no existe la reserva, el libro esta
+descatalogado o no se puede incrementar el stock sin desbordamiento.
 
 ### `vaciarCola`
 

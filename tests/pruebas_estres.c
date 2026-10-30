@@ -12,7 +12,7 @@
 
 #define CASOS_ESTRES 1000
 
-static struct Libro *insertarLibroPrueba(struct NodoLibro **raiz, int codigo,
+struct Libro *insertarLibroPrueba(struct NodoLibro **raiz, int codigo,
                                          int disponibilidad, int stock,
                                          int precio) {
     struct Libro *libro;
@@ -28,7 +28,7 @@ static struct Libro *insertarLibroPrueba(struct NodoLibro **raiz, int codigo,
     return libro;
 }
 
-static void ejecutarCasoIntegrado(int caso) {
+void ejecutarCasoIntegrado(int caso) {
     struct Tienda tienda = {0};
     struct ResultadoFila resultado;
     struct NodoCliente *cliente;
@@ -68,10 +68,10 @@ static void ejecutarCasoIntegrado(int caso) {
     assert(nodoSala != NULL);
     insertarSala(&tienda.headSalas, nodoSala);
 
-    insertarLibroPrueba(&sala->raiz, codigoBase + 2, 3, 0, precio);
+    insertarLibroPrueba(&sala->raiz, codigoBase + 2, 3, 2, precio);
     insertarLibroPrueba(&sala->raiz, codigoBase + 1, 1, 2, precio);
     insertarLibroPrueba(&sala->raiz, codigoBase + 3, 1, 2, precio);
-    insertarLibroPrueba(&sala->raiz, codigoBase + 4, 3, 0, precio);
+    insertarLibroPrueba(&sala->raiz, codigoBase + 4, 3, 2, precio);
     assert(contarLibros(sala->raiz) == 4);
 
     libroReservado = buscarLibro(sala->raiz, codigoBase + 2)->dato;

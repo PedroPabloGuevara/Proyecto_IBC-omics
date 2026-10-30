@@ -205,7 +205,7 @@ void liberarPasesClientes(struct NodoCliente *head) {
 /* busca recursivamente si el cliente tiene una reserva en algun libro del arbol */
 /* retorna 1 si encuentra una reserva con ese rut, 0 si no */
 
-static int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
+int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
 
     if (raiz == NULL) {
         return 0;
@@ -224,7 +224,7 @@ int eliminarReservasClienteArbol(struct NodoLibro *raiz, int rut) {
     }
 
     return eliminarReservasClienteArbol(raiz->izq, rut) +
-           eliminarReserva(raiz->dato, rut) +
+           cancelarReserva(raiz->dato, rut) +
            eliminarReservasClienteArbol(raiz->der, rut);
 }
 
@@ -298,11 +298,11 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
     return 1;
 }
 
-/* elimina un cliente solo si no esta en la fila, dentro de la tienda, no tiene reservas ni pases activos */
+/* elimina un cliente solo si no esta en la fila, dentro de la tienda ni tiene reservas */
 /* al eliminar un cliente (nodo), el nodo anterior debe saltarse el eliminado. */
 /* retorna 1 si se elimino, 0 si el cliente no existe, */
 /* -1 si tiene un pase en la fila, -2 si esta dentro de la tienda (un pase ya ingreso), */
-/* -3 si tiene una reserva, -4 si tiene un pase activo disponible */
+/* -3 si tiene una reserva */
 
 int eliminarCliente(struct Tienda *tienda, int rut) {
     struct NodoCliente *act, *rec; /* rec esta justo antes de act */
@@ -338,13 +338,6 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     for (sala = tienda->headSalas; sala != NULL; sala = sala->sig) {
         if (tieneReservaArbol(sala->dato->raiz, rut)) {
             return -3;
-        }
-    }
-
-    /* revisar que no tenga pases activos disponibles (estado 1) */
-    for (i = 0; i < MAXPASES; i++) {
-        if (c->pases[i] != NULL && c->pases[i]->estado == 1) {
-            return -4;
         }
     }
 

@@ -20,6 +20,8 @@ void mostrarCola(struct Libro *libro);
 struct NodoReserva *buscarReserva(struct Libro *libro, int rut);
 /* Quita y libera el nodo y su reserva, pero no el cliente. */
 int eliminarReserva(struct Libro *libro, int rut);
+/* Cancela una reserva y devuelve al stock la unidad que habia apartado. */
+int cancelarReserva(struct Libro *libro, int rut);
 /* Cambia el pase de una reserva existente y la reubica segun su nueva prioridad. */
 int modificarReserva(struct Libro *libro, struct Cliente *cliente,
                      struct Pase *nuevoPase);
