@@ -59,7 +59,7 @@ struct Libro {
     int ejemplaresDisponibles;
     char *publicacion;
     int clasificacionEdad;
-    int disponibilidad; /*estados estilo */
+    int disponibilidad; /*1 Disponible 2 Agotado 3 Preventa 4 Descatalogado*/
     char *genero;
     char *fechaPublicacion;
     int deColeccion;
