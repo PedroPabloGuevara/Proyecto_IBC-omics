@@ -1617,7 +1617,7 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
     int i;
 
     if (libro == NULL || cliente == NULL || pase == NULL ||
-        libro->disponibilidad == 1 ||  libro->disponibilidad == 4 || libro->ejemplaresDisponibles <= 0 ||
+        libro->disponibilidad == 1 ||  libro->disponibilidad == 4 ||
         (pase->estado != 1 && pase->estado != 3) ||
         pase->tipoPase < 1 || pase->tipoPase > 4 ||
         buscarReserva(libro, cliente->rut) != NULL) {
@@ -1666,7 +1666,7 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
     struct NodoReserva *rec;
 
     if (libro == NULL || nuevo == NULL || nuevo->dato == NULL ||
-        nuevo->dato->reservador == NULL || libro->disponibilidad != 3 ||
+        nuevo->dato->reservador == NULL ||libro->disponibilidad == 1 ||  libro->disponibilidad == 4||
         nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 ||
         nuevo->sig != NULL) {
         return 0;
@@ -1832,7 +1832,7 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
     int i;
 
     if (libro == NULL || cliente == NULL || nuevoPase == NULL ||
-        libro->disponibilidad != 3 ||
+        libro->disponibilidad == 1 ||  libro->disponibilidad == 4||
         (nuevoPase->estado != 1 && nuevoPase->estado != 3) ||
         nuevoPase->tipoPase < 1 || nuevoPase->tipoPase > 4) {
         return 0;
