@@ -121,27 +121,22 @@ char *copiarTexto(char *texto);
 -el aforo actual parte en 0 y el aforo maximo debe ser al menos 1
 -retorna la sala, o NULL si algun dato no es valido o falta memoria
 */
-struct SalaTematica *crearSala(char *tematica, char *nombre, char *horarioInicio, char *horarioCierre, int codigo, int aforoMaximo){
+struct SalaTematica *crearSala(char *tematica, char *nombre, char *horarioInicio, char *horarioCierre, int codigo, int aforoMaximo) {
 
     struct SalaTematica *nuevo;
 
-    if (tematica == NULL || nombre == NULL || horarioInicio == NULL ||
-        horarioCierre == NULL || aforoMaximo < 1 ||
-        strcmp(horarioInicio, horarioCierre) >= 0) {
+    if (tematica == NULL || nombre == NULL || horarioInicio == NULL ||horarioCierre == NULL || aforoMaximo < 1 ||strcmp(horarioInicio, horarioCierre) >= 0) {
         return NULL;
     }
-
     nuevo = (struct SalaTematica*)malloc(sizeof(struct SalaTematica));
     if (nuevo == NULL) {
         return NULL;
     }
-
     nuevo->tematica = copiarTexto(tematica);
     nuevo->nombre = copiarTexto(nombre);
     nuevo->horarioInicio = copiarTexto(horarioInicio);
     nuevo->horarioCierre = copiarTexto(horarioCierre);
-    if (nuevo->tematica == NULL || nuevo->nombre == NULL ||
-        nuevo->horarioInicio == NULL || nuevo->horarioCierre == NULL) {
+    if (nuevo->tematica == NULL || nuevo->nombre == NULL || nuevo->horarioInicio == NULL || nuevo->horarioCierre == NULL) {
         free(nuevo->tematica);          /* free(NULL) es valido */
         free(nuevo->nombre);
         free(nuevo->horarioInicio);
@@ -153,12 +148,11 @@ struct SalaTematica *crearSala(char *tematica, char *nombre, char *horarioInicio
     nuevo->aforoMaximo = aforoMaximo;
     nuevo->aforoActual = 0;
     nuevo->raiz = NULL;
-
     return nuevo;
 }
 
 
-struct NodoSala *crearNodoSala(struct SalaTematica *nuevaSala){
+struct NodoSala *crearNodoSala(struct SalaTematica *nuevaSala) {
 
     struct NodoSala *nuevoNodo;
 
@@ -166,7 +160,6 @@ struct NodoSala *crearNodoSala(struct SalaTematica *nuevaSala){
     nuevoNodo->dato = nuevaSala;
     nuevoNodo->sig = NULL;
     nuevoNodo->ant = NULL;
-
     return nuevoNodo;
 }
 
@@ -210,7 +203,6 @@ void vaciarCola(struct Libro *libro) {
     if (libro == NULL) {
         return;
     }
-
     rec = libro->headReserva;
     while (rec != NULL) {
         sig = rec->sig;          /* guardar el siguiente ANTES de liberar */
@@ -220,6 +212,7 @@ void vaciarCola(struct Libro *libro) {
     }
     libro->headReserva = NULL;   /* la cola queda vacia */
 }
+
 void eliminarArbolLibros(struct NodoLibro *raiz) {
 
     if (raiz == NULL) {
@@ -235,6 +228,7 @@ void eliminarArbolLibros(struct NodoLibro *raiz) {
     free(raiz->dato);                /* el libro */
     free(raiz);                      /* el nodo del arbol */
 }
+
 int EliminarSala(struct NodoSala **headSalas,int codigo) {
 
     struct NodoSala *rec;
@@ -309,8 +303,7 @@ int modificarSala(struct NodoSala **headSalas, int codigo, int nuevoCodigo, int 
     if (*headSalas == NULL) {
         return 0;
     }
-    if (nuevaTematica == NULL || nuevoNombre == NULL || nuevoHorarioInicio == NULL ||
-        nuevoHorarioCierre == NULL || strcmp(nuevoHorarioInicio, nuevoHorarioCierre) >= 0) {
+    if (nuevaTematica == NULL || nuevoNombre == NULL || nuevoHorarioInicio == NULL || nuevoHorarioCierre == NULL || strcmp(nuevoHorarioInicio, nuevoHorarioCierre) >= 0) {
         return 0;
     }
     if (nuevoCodigo != codigo) {
@@ -353,14 +346,10 @@ int modificarSala(struct NodoSala **headSalas, int codigo, int nuevoCodigo, int 
 }
 
 int cancelarReserva(struct Libro *libro, int rut) {
-    if (libro == NULL || libro->disponibilidad == 4 ||
-        libro->ejemplaresDisponibles < 0 ||
-        (unsigned int)libro->ejemplaresDisponibles >=
-            ((unsigned int)-1 >> 1) ||
-        buscarReserva(libro, rut) == NULL) {
+    
+    if (libro == NULL || libro->disponibilidad == 4 || libro->ejemplaresDisponibles < 0 || (unsigned int)libro->ejemplaresDisponibles >= ((unsigned int)-1 >> 1) || buscarReserva(libro, rut) == NULL) {
         return 0;
     }
-
     if (!eliminarReserva(libro, rut)) {
         return 0;
     }
@@ -376,15 +365,14 @@ int cancelarReserva(struct Libro *libro, int rut) {
 /*funciones cliente*/
 /*=======================================================================================================*/
 
-struct Cliente *crearCliente(char *nombre, int rut)
-{
+struct Cliente *crearCliente(char *nombre, int rut) {
+    
     struct Cliente *nuevo;
     int i;
-
+    
     if (nombre == NULL) {
         return NULL;
     }
-
     nuevo = malloc(sizeof(*nuevo));
     if (nuevo == NULL) {
         return NULL;
@@ -396,9 +384,7 @@ struct Cliente *crearCliente(char *nombre, int rut)
     }
     strcpy(nuevo->nombre, nombre);
     nuevo->rut=rut;
-
-    for(i=0; i<MAXPASES; i++)
-    {
+    for(i=0; i<MAXPASES; i++) {
         nuevo->pases[i]=NULL;
     }
     nuevo->plibrepases=0;
@@ -406,32 +392,29 @@ struct Cliente *crearCliente(char *nombre, int rut)
     return nuevo;
 }
 
-struct NodoCliente *crearNodoCliente(struct Cliente *dato) /* para meter en lista */
-{
+struct NodoCliente *crearNodoCliente(struct Cliente *dato) {/* para meter en lista */
+   
     struct NodoCliente *nuevo;
 
     if (dato == NULL) {
         return NULL;
     }
-
     nuevo = malloc(sizeof(*nuevo));
     if (nuevo == NULL) {
         return NULL;
     }
     nuevo->dato=dato;
     nuevo->sig=NULL;
-
     return nuevo;
 }
 
 struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut) {
+    
     struct NodoCliente *rec=head;
-    if(rec!=NULL)
-    {
-        do
-        {
-            if(rec->dato->rut==rut)
-            {
+    
+    if(rec!=NULL) {
+        do {
+            if(rec->dato->rut==rut) {
                 return rec;
             }
             rec=rec->sig;
@@ -439,20 +422,16 @@ struct NodoCliente *buscarCliente(struct NodoCliente *head, int rut) {
     }
     return NULL;
 }
-void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
-{
+void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo) {
+    
     struct NodoCliente *rec;
 
-    if(*head==NULL)
-    {
+    if(*head==NULL) {
         *head=nuevo;
         nuevo->sig=*head;
-    }
-    else
-    {
+    }else{
         rec=*head;
-        while(rec->sig!=*head)
-        {
+        while(rec->sig!=*head) {
             rec=rec->sig;
         }
         rec->sig=nuevo;
@@ -460,8 +439,8 @@ void enlazarCliente(struct NodoCliente **head, struct NodoCliente *nuevo)
     }
 }
 
-int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 1 si lo agrego, 0 si el rut ya existia */
-{
+int agregarCliente(struct NodoCliente **head, char *nombre, int rut) {/* retorna 1 si lo agrego, 0 si el rut ya existia */
+    
     struct Cliente *cliente;
     struct NodoCliente *nodo;
 
@@ -471,7 +450,6 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
     if (buscarCliente(*head, rut)!=NULL) {
         return 0;
     }
-
     cliente = crearCliente(nombre, rut);
     if (cliente == NULL) {
         return 0;
@@ -489,6 +467,7 @@ int agregarCliente(struct NodoCliente **head, char *nombre, int rut) /* retorna 
 /* busca recursivamente si el cliente tiene una reserva en algun libro del arbol */
 /* retorna 1 si encuentra una reserva con ese rut, 0 si no */
 int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
+    
     if (raiz == NULL) {
         return 0;
     }
@@ -506,6 +485,7 @@ int tieneReservaArbol(struct NodoLibro *raiz, int rut) {
 /* -1 si tiene un pase en la fila, -2 si esta dentro de la tienda (un pase ya ingreso), */
 /* -3 si tiene una reserva */
 int eliminarCliente(struct Tienda *tienda, int rut) {
+    
     struct NodoCliente *act;
     struct NodoCliente *ant;
     struct NodoSala *sala;
@@ -515,13 +495,11 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     if (tienda == NULL || tienda->headClientes == NULL) {
         return 0;
     }
-
     act = buscarCliente(tienda->headClientes, rut);
     if (act == NULL || act->dato == NULL) {
         return 0;
     }
     cliente = act->dato;
-
     /* revisar sus pases: en fila o ya ingresados */
     for (i = 0; i < MAXPASES; i++) {
         if (cliente->pases[i] != NULL) {
@@ -529,20 +507,17 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
                              cliente->pases[i]->codigo) != NULL) {
                 return -1;
             }
-            if (buscarPaseDelDia(tienda->filaPasesDeldia,
-                                 cliente->pases[i]->codigo) != NULL) {
+            if (buscarPaseDelDia(tienda->filaPasesDeldia,cliente->pases[i]->codigo) != NULL) {
                 return -2;
             }
         }
     }
-
     /* revisar sus reservas en todos los libros de todas las salas */
     for (sala = tienda->headSalas; sala != NULL; sala = sala->sig) {
         if (tieneReservaArbol(sala->dato->raiz, rut)) {
             return -3;
         }
     }
-
     /* desenlazar de la lista circular */
     if (act->sig == act) { /* unico nodo -> lista queda vacia */
         tienda->headClientes = NULL;
@@ -556,7 +531,6 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
             tienda->headClientes = act->sig;
         }
     }
-
     /* el cliente es dueno de sus pases: se liberan antes de eliminarlo */
     for (i = 0; i < MAXPASES; i++) {
         liberarPase(cliente->pases[i]);
@@ -566,10 +540,10 @@ int eliminarCliente(struct Tienda *tienda, int rut) {
     free(act);
     return 1;
 }
-
 /* retorna 1 si se modifico, 0 si el cliente no existe o el nombre es NULL, */
 /* -1 si el rut nuevo ya pertenece a otro cliente, -2 si no hay memoria */
 int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int nuevoRut) {
+ 
     struct NodoCliente *nodo;
     char *copia;
 
@@ -580,11 +554,9 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
     if(nodo==NULL) {
         return 0;
     }
-
     if(nuevoRut!=rut && buscarCliente(head, nuevoRut)!=NULL) { /* rut no puede pertenecer a otro cliente */
         return -1;
     }
-
     /* primero se copia el nombre nuevo, asi si malloc falla el cliente queda igual */
     copia = malloc(strlen(nuevoNombre) + 1);
     if (copia == NULL) {
@@ -594,7 +566,6 @@ int modificarCliente(struct NodoCliente *head, int rut, char *nuevoNombre, int n
     free(nodo->dato->nombre); /* se libera el nombre viejo */
     nodo->dato->nombre = copia; /* el cliente pasa a apuntar al nombre nuevo */
     nodo->dato->rut=nuevoRut;
-
     return 1;
 }
 
@@ -607,8 +578,7 @@ void listarClientes(struct NodoCliente *head) { /* mostrar clientes */
         printf("No hay clientes registrados.\n");
     }
     else {
-        do
-        {
+        do{
             cantidad++;
             printf("%d) Nombre: %s, RUT: %d, Pases: %d\n",
                    cantidad, rec->dato->nombre, rec->dato->rut,
@@ -617,7 +587,6 @@ void listarClientes(struct NodoCliente *head) { /* mostrar clientes */
         } while(rec!=head);
     }
 }
-
 /*=======================================================================================================*/
 /* funciones pases*/
 
@@ -627,25 +596,21 @@ void listarClientes(struct NodoCliente *head) { /* mostrar clientes */
 -retorna el puntero al pase creado
 */
 
-struct Pase *crearPase(int tipoPase, int codigo, int valor, int estado, char *fecha, char *hora){
+struct Pase *crearPase(int tipoPase, int codigo, int valor, int estado, char *fecha, char *hora) {
+ 
     struct Pase *nuevo;
 
-    if (fecha == NULL || hora == NULL || codigo <= 0 ||
-        tipoPase < 1 || tipoPase > 4 || valor < 0 ||
-        estado < 1 || estado > 4) {
+    if (fecha == NULL || hora == NULL || codigo <= 0 ||tipoPase < 1 || tipoPase > 4 || valor < 0 ||estado < 1 || estado > 4) {
         return NULL;
     }
-
     nuevo = malloc(sizeof(*nuevo));
     if (nuevo == NULL) {
         return NULL;
     }
-
     nuevo->tipoPase=tipoPase;
     nuevo->codigo=codigo;
     nuevo->valor=valor;
     nuevo->estado=estado;
-
     nuevo->fecha = malloc(strlen(fecha) + 1);
     if (nuevo->fecha == NULL) {
         free(nuevo);
@@ -659,17 +624,15 @@ struct Pase *crearPase(int tipoPase, int codigo, int valor, int estado, char *fe
         return NULL;
     }
     strcpy(nuevo->hora, hora);
-
     return nuevo;
 }
-
 /*
 -hace que un pase se convierta en un nodo de lista
 -recibe un puntero a pase y retorna un puntero a nodo de pase
 -lo usan tanto la lista de pases del dia como la fila
 */
-
-struct NodoPase *crearNodoPase(struct Pase *pase){
+struct NodoPase *crearNodoPase(struct Pase *pase) {
+  
     struct NodoPase *nuevo;
 
     if (pase == NULL) {
@@ -681,21 +644,19 @@ struct NodoPase *crearNodoPase(struct Pase *pase){
     }
     nuevo->paseVigente=pase;
     nuevo->sig=NULL;
-
     return nuevo;
 }
-
 /*
 -busca la posicion de un pase por codigo en un arreglo de pases
 -recibe el arreglo y su plibre (cantidad de pases guardados)
 -retorna la posicion si lo encuentra, o -1 si no existe
 */
 
-int buscarPosicionPase(struct Pase **pases, int plibre, int codigo){
+int buscarPosicionPase(struct Pase **pases, int plibre, int codigo) { 
+ 
     int i;
 
-    for(i=0; i<plibre; i++)
-    {
+    for(i=0; i<plibre; i++) {
         if(pases[i]->codigo==codigo)
         {
             return i;
@@ -703,24 +664,21 @@ int buscarPosicionPase(struct Pase **pases, int plibre, int codigo){
     }
     return -1;
 }
-
 /*
 -busca un pase por codigo en un arreglo de pases
 -usa buscarPosicionPase
 -retorna el pase si lo encuentra, o NULL si no existe
 */
-
-struct Pase *buscarPase(struct Pase **pases, int plibre, int codigo){
+struct Pase *buscarPase(struct Pase **pases, int plibre, int codigo) {
+  
     int pos;
 
     pos=buscarPosicionPase(pases, plibre, codigo);
-    if(pos==-1)
-    {
+    if(pos==-1) {
         return NULL;
     }
     return pases[pos];
 }
-
 /*
 -agrega un pase al arreglo, en la primera posicion libre (plibre)
 -recibe el arreglo, su plibre por puntero (porque aumenta), su tamano total y el pase
@@ -728,23 +686,17 @@ struct Pase *buscarPase(struct Pase **pases, int plibre, int codigo){
 -retorna 1 si se agrego, 0 si no se pudo
 */
 
-int agregarPase(struct Pase **pases, int *plibre, int tam, struct Pase *pase){
+int agregarPase(struct Pase **pases, int *plibre, int tam, struct Pase *pase) {
 
-    if(pase==NULL || *plibre>=tam)
-    {
+    if(pase==NULL || *plibre>=tam) {
         return 0;
     }
-
-    if(pase->tipoPase<1 || pase->tipoPase>4 || pase->estado<1 || pase->estado>4 || pase->valor<0)
-    {
+    if(pase->tipoPase<1 || pase->tipoPase>4 || pase->estado<1 || pase->estado>4 || pase->valor<0) {
         return 0;
     }
-
-    if(buscarPosicionPase(pases, *plibre, pase->codigo)!=-1)
-    {
+    if(buscarPosicionPase(pases, *plibre, pase->codigo)!=-1) {
         return 0;
     }
-
     pases[*plibre]=pase;
     (*plibre)++;
     return 1;
@@ -757,18 +709,14 @@ int agregarPase(struct Pase **pases, int *plibre, int tam, struct Pase *pase){
 -retorna 1 si se modifico, 0 si el pase es NULL, -1 si el tipo o el valor no son validos
 */
 
-int modificarPase(struct Pase *pase, int nuevoTipo, int nuevoValor){
+int modificarPase(struct Pase *pase, int nuevoTipo, int nuevoValor) {
 
-    if(pase==NULL)
-    {
+    if(pase==NULL) {
         return 0;
     }
-
-    if(nuevoTipo<1 || nuevoTipo>4 || nuevoValor<0)
-    {
+    if(nuevoTipo<1 || nuevoTipo>4 || nuevoValor<0) {
         return -1;
     }
-
     pase->tipoPase=nuevoTipo;
     pase->valor=nuevoValor;
     return 1;
@@ -779,20 +727,15 @@ int modificarPase(struct Pase *pase, int nuevoTipo, int nuevoValor){
 -si no hay pases avisa con un mensaje
 */
 
-void listarPases(struct Pase **pases, int plibre){
+void listarPases(struct Pase **pases, int plibre) {
+    
     int i;
 
-    if(plibre==0)
-    {
+    if(plibre==0) {
         printf("No hay pases registrados.\n");
-    }
-    else
-    {
-        for(i=0; i<plibre; i++)
-        {
-            printf("Codigo: %d, Tipo: %d, Valor: %d, Estado: %d, Fecha: %s, Hora: %s\n",
-                   pases[i]->codigo, pases[i]->tipoPase, pases[i]->valor,
-                   pases[i]->estado, pases[i]->fecha, pases[i]->hora);
+    }else{
+        for(i=0; i<plibre; i++) {
+            printf("Codigo: %d, Tipo: %d, Valor: %d, Estado: %d, Fecha: %s, Hora: %s\n",pases[i]->codigo, pases[i]->tipoPase, pases[i]->valor,pases[i]->estado, pases[i]->fecha, pases[i]->hora);
         }
     }
 }
@@ -802,13 +745,11 @@ void listarPases(struct Pase **pases, int plibre){
 -usar solo cuando el pase se elimina de todos lados, una sola vez por pase
 */
 
-void liberarPase(struct Pase *pase){
+void liberarPase(struct Pase *pase) {
 
-    if(pase==NULL)
-    {
+    if(pase==NULL) {
         return;
     }
-
     free(pase->fecha);
     free(pase->hora);
     free(pase);
@@ -820,7 +761,8 @@ void liberarPase(struct Pase *pase){
 -retorna el puntero a la lista, que se guarda en tienda->filaPasesDeldia
 */
 
-struct pasesDelDia *crearPasesDelDia(void){
+struct pasesDelDia *crearPasesDelDia(void) {
+    
     struct pasesDelDia *nueva;
 
     nueva = malloc(sizeof(*nueva));
@@ -828,7 +770,6 @@ struct pasesDelDia *crearPasesDelDia(void){
         return NULL;
     }
     nueva->head=NULL;
-
     return nueva;
 }
 
@@ -838,19 +779,16 @@ struct pasesDelDia *crearPasesDelDia(void){
 -retorna el nodo si lo encuentra, o NULL si no existe
 */
 
-struct NodoPase *buscarPaseDelDia(struct pasesDelDia *lista, int codigo){
+struct NodoPase *buscarPaseDelDia(struct pasesDelDia *lista, int codigo) {
+    
     struct NodoPase *rec;
 
-    if(lista==NULL)
-    {
+    if(lista==NULL) {
         return NULL;
     }
-
     rec=lista->head;
-    while(rec!=NULL)
-    {
-        if(rec->paseVigente->codigo==codigo)
-        {
+    while(rec!=NULL) {
+        if(rec->paseVigente->codigo==codigo) {
             return rec;
         }
         rec=rec->sig;
@@ -866,34 +804,25 @@ struct NodoPase *buscarPaseDelDia(struct pasesDelDia *lista, int codigo){
 -retorna 1 si se agrego, 0 si el codigo ya existia o los datos no son validos
 */
 
-int agregarPaseDelDia(struct pasesDelDia *lista, struct Pase *pase){
+int agregarPaseDelDia(struct pasesDelDia *lista, struct Pase *pase) {
+        
     struct NodoPase *rec, *nuevo;
 
-    if(lista==NULL || pase==NULL)
-    {
+    if(lista==NULL || pase==NULL) {
         return 0;
     }
-
-    if(buscarPaseDelDia(lista, pase->codigo)!=NULL)
-    {
+    if(buscarPaseDelDia(lista, pase->codigo)!=NULL) {
         return 0;
     }
-
     nuevo=crearNodoPase(pase);
-    if(nuevo==NULL)
-    {
+    if(nuevo==NULL) {
         return 0;
     }
-
-    if(lista->head==NULL)
-    {
+    if(lista->head==NULL) {
         lista->head=nuevo;
-    }
-    else
-    {
+    }else{
         rec=lista->head;
-        while(rec->sig!=NULL)
-        {
+        while(rec->sig!=NULL) {
             rec=rec->sig;
         }
         rec->sig=nuevo;
@@ -906,33 +835,25 @@ int agregarPaseDelDia(struct pasesDelDia *lista, struct Pase *pase){
 -retorna 1 si se elimino, 0 si no existe, -1 si la lista esta vacia
 */
 
-int eliminarPaseDelDia(struct pasesDelDia *lista, int codigo){
+int eliminarPaseDelDia(struct pasesDelDia *lista, int codigo) {
+        
     struct NodoPase *rec, *borrar;
 
-    if(lista==NULL)
-    {
+    if(lista==NULL) {
         return 0;
     }
-
-    if(lista->head==NULL)
-    {
+    if(lista->head==NULL) {
         return -1;
     }
-
     rec=lista->head;
-    if(rec->paseVigente->codigo==codigo)
-    {
+    if(rec->paseVigente->codigo==codigo) {
         borrar=rec;
         lista->head=rec->sig;
         free(borrar);
         return 1;
-    }
-    else
-    {
-        while(rec->sig!=NULL)
-        {
-            if(rec->sig->paseVigente->codigo==codigo)
-            {
+    }else{
+        while(rec->sig!=NULL) {
+            if(rec->sig->paseVigente->codigo==codigo) {
                 borrar=rec->sig;
                 rec->sig=borrar->sig;
                 free(borrar);
@@ -950,15 +871,14 @@ int eliminarPaseDelDia(struct pasesDelDia *lista, int codigo){
 -retorna 1 si se modifico, 0 si no existe, -1 si el tipo o el valor no son validos
 */
 
-int modificarPaseDelDia(struct pasesDelDia *lista, int codigo, int nuevoTipo, int nuevoValor){
+int modificarPaseDelDia(struct pasesDelDia *lista, int codigo, int nuevoTipo, int nuevoValor) {
+        
     struct NodoPase *nodo;
 
     nodo=buscarPaseDelDia(lista, codigo);
-    if(nodo==NULL)
-    {
+    if(nodo==NULL) {
         return 0;
     }
-
     return modificarPase(nodo->paseVigente, nuevoTipo, nuevoValor);
 }
 
@@ -967,24 +887,18 @@ int modificarPaseDelDia(struct pasesDelDia *lista, int codigo, int nuevoTipo, in
 -si no hay pases avisa con un mensaje
 */
 
-void listarPasesDelDia(struct pasesDelDia *lista){
+void listarPasesDelDia(struct pasesDelDia *lista) {
+    
     struct NodoPase *rec;
     int cantidad=0;
-
-    if(lista==NULL || lista->head==NULL)
-    {
+        
+    if(lista==NULL || lista->head==NULL) {
         printf("No hay pases registrados hoy.\n");
-    }
-    else
-    {
+    }else{
         rec=lista->head;
-        while(rec!=NULL)
-        {
+        while(rec!=NULL) {
             cantidad++;
-            printf("Cantidad: %d, Codigo: %d, Tipo: %d, Valor: %d, Estado: %d, Fecha: %s, Hora: %s\n",
-                   cantidad, rec->paseVigente->codigo, rec->paseVigente->tipoPase,
-                   rec->paseVigente->valor, rec->paseVigente->estado,
-                   rec->paseVigente->fecha, rec->paseVigente->hora);
+            printf("Cantidad: %d, Codigo: %d, Tipo: %d, Valor: %d, Estado: %d, Fecha: %s, Hora: %s\n",cantidad, rec->paseVigente->codigo, rec->paseVigente->tipoPase,rec->paseVigente->valor, rec->paseVigente->estado,rec->paseVigente->fecha, rec->paseVigente->hora);
             rec=rec->sig;
         }
     }
@@ -996,20 +910,17 @@ void listarPasesDelDia(struct pasesDelDia *lista){
 -retorna la cantidad, 0 si no hay ninguno
 */
 
-int contarPasesPorEstado(struct pasesDelDia *lista, int estado){
+int contarPasesPorEstado(struct pasesDelDia *lista, int estado) {
+        
     struct NodoPase *rec;
     int contador=0;
 
-    if(lista==NULL)
-    {
+    if(lista==NULL) {
         return 0;
     }
-
     rec=lista->head;
-    while(rec!=NULL)
-    {
-        if(rec->paseVigente->estado==estado)
-        {
+    while(rec!=NULL) {
+        if(rec->paseVigente->estado==estado) {
             contador++;
         }
         rec=rec->sig;
@@ -1024,19 +935,16 @@ int contarPasesPorEstado(struct pasesDelDia *lista, int estado){
 -esta funcion corresponde al modulo de la fila, queda aqui porque recorre nodos de pase
 */
 
-struct NodoPase *buscarPaseFila(struct Fila *fila, int codigo){
+struct NodoPase *buscarPaseFila(struct Fila *fila, int codigo) {
+        
     struct NodoPase *rec;
 
-    if(fila==NULL)
-    {
+    if(fila==NULL) {
         return NULL;
     }
-
     rec=fila->head;
-    while(rec!=NULL)
-    {
-        if(rec->paseVigente->codigo==codigo)
-        {
+    while(rec!=NULL) {
+        if(rec->paseVigente->codigo==codigo) {
             return rec;
         }
         rec=rec->sig;
@@ -1051,6 +959,7 @@ struct NodoPase *buscarPaseFila(struct Fila *fila, int codigo){
 /* retorna 1 si se elimino, 0 si el cliente o el pase no existen, */
 /* -1 si el pase esta en la fila, -2 si el pase ya ingreso */
 int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
+    
     struct NodoCliente *nodo;
     struct Cliente *c;
     int i, pos;
@@ -1058,29 +967,24 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
     if (tienda == NULL) { /* evita fallar si no hay tienda */
         return 0;
     }
-
     nodo = buscarCliente(tienda->headClientes, rut);
     if (nodo == NULL) {
         return 0;
     }
     c = nodo->dato;
-
     /* pos es la posicion del pase en el arreglo del cliente, -1 si no lo tiene */
     pos = buscarPosicionPase(c->pases, c->plibrepases, codigo);
     if (pos < 0) {
         return 0; /* el cliente no tiene ese pase */
     }
-
     if (buscarEnFila(tienda->filaEntrada, codigo) != NULL) {
         return -1; /* esta esperando en la fila */
     }
     if (buscarPaseDelDia(tienda->filaPasesDeldia, codigo) != NULL) {
         return -2; /* ya ingreso, el cliente esta dentro */
     }
-
     /* el pase tiene 3 bloques de memoria (fecha, hora y el struct), liberarPase los libera en ese orden */
     liberarPase(c->pases[pos]);
-
     /* cada pase siguiente retrocede una posicion y tapa el hueco del eliminado */
     for (i = pos; i < c->plibrepases - 1; i++) {
         c->pases[i] = c->pases[i + 1];
@@ -1088,7 +992,6 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
     /* el for no toca la ultima posicion ocupada: queda con una copia repetida, se vacia con NULL */
     c->plibrepases--;
     c->pases[c->plibrepases] = NULL;
-
     return 1;
 }
 
@@ -1101,12 +1004,12 @@ int eliminarPase(struct Tienda *tienda, int rut, int codigo) {
  * de su memoria; retorna NULL si el texto no existe o malloc falla.
  */
 char *copiarTexto(char *texto) {
+    
     char *copia;
 
     if (texto == NULL) {
         return NULL;
     }
-
     copia = malloc(strlen(texto) + 1);
     if (copia != NULL) {
         strcpy(copia, texto);
@@ -1119,26 +1022,17 @@ char *copiarTexto(char *texto) {
 -retorna el puntero al libro creado, o NULL si los datos no son validos
 */
 
-struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
-    char *publicacion, int clasificacionEdad,
-    int disponibilidad, char *genero, char *fechaPublicacion, int deColeccion) {
+struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,char *publicacion, int clasificacionEdad,int disponibilidad, char *genero, char *fechaPublicacion, int deColeccion) {
 
     struct Libro *nuevoLibro;
 
-    if (codigo <= 0 || nombre == NULL || precio < 0 || ejemplares < 0 ||
-        publicacion == NULL || genero == NULL || fechaPublicacion == NULL ||
-        disponibilidad < 1 || disponibilidad > 4 ||
-        (disponibilidad == 1 && ejemplares == 0) ||
-        (disponibilidad == 2 && ejemplares != 0) ||
-        (disponibilidad == 3 && ejemplares == 0)) {
+    if (codigo <= 0 || nombre == NULL || precio < 0 || ejemplares < 0 ||publicacion == NULL || genero == NULL || fechaPublicacion == NULL || disponibilidad < 1 || disponibilidad > 4 || (disponibilidad == 1 && ejemplares == 0) || (disponibilidad == 2 && ejemplares != 0) || (disponibilidad == 3 && ejemplares == 0)) {
         return NULL;
     }
-
     nuevoLibro = malloc(sizeof(*nuevoLibro));
     if (nuevoLibro == NULL) {
         return NULL;
     }
-
     nuevoLibro->codigo = codigo;
     nuevoLibro->nombre = NULL;
     nuevoLibro->precio = precio;
@@ -1150,18 +1044,15 @@ struct Libro *crearLibro(int codigo, char *nombre, int precio, int ejemplares,
     nuevoLibro->fechaPublicacion = NULL;
     nuevoLibro->deColeccion = deColeccion;
     nuevoLibro->headReserva = NULL;
-
     nuevoLibro->nombre = copiarTexto(nombre);
     nuevoLibro->publicacion = copiarTexto(publicacion);
     nuevoLibro->genero = copiarTexto(genero);
     nuevoLibro->fechaPublicacion = copiarTexto(fechaPublicacion);
-    if (nuevoLibro->nombre == NULL || nuevoLibro->publicacion == NULL ||
-        nuevoLibro->genero == NULL || nuevoLibro->fechaPublicacion == NULL) {
+    if (nuevoLibro->nombre == NULL || nuevoLibro->publicacion == NULL || nuevoLibro->genero == NULL || nuevoLibro->fechaPublicacion == NULL) {
         liberarLibro(nuevoLibro);
         free(nuevoLibro);
         return NULL;
     }
-
     return nuevoLibro ;
 }
 
@@ -1176,7 +1067,6 @@ struct NodoLibro *crearNodoLibro(struct Libro *dato) {
     if (dato == NULL) {
         return NULL;
     }
-
     nuevoNodo = malloc(sizeof(*nuevoNodo));
     if (nuevoNodo == NULL) {
         return NULL;
@@ -1184,27 +1074,25 @@ struct NodoLibro *crearNodoLibro(struct Libro *dato) {
     nuevoNodo -> dato = dato ;
     nuevoNodo -> izq = NULL ;
     nuevoNodo -> der = NULL ;
-
     return nuevoNodo ;
 }
-
 
 /*
  * Busca un libro por codigo aprovechando el orden del arbol binario.
  * Retorna el nodo encontrado o NULL si el codigo no existe.
  */
-struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo){
+struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo) {
+        
     if (raiz == NULL) {
         return NULL ; /*no se encontro el libro*/
     }
     if (codigo == raiz->dato->codigo) {
         return raiz ; /*se encontro el libro*/
     }
-
     /*si el codigo es menor se busca en el subarbol izquierdo; si es mayor, en el derecho*/
     if (codigo < raiz->dato->codigo) {
         return buscarLibro(raiz->izq, codigo) ;
-    } else {
+    }else{
         return buscarLibro(raiz->der, codigo) ;
     }
 }
@@ -1215,6 +1103,7 @@ struct NodoLibro *buscarLibro(struct NodoLibro *raiz, int codigo){
 -se usa para encontrar el sucesor cuando se elimina un nodo con dos hijos
 */
 struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
+        
     while (raiz->izq != NULL) {
         raiz = raiz->izq;
     }
@@ -1227,23 +1116,22 @@ struct NodoLibro *menorNodo(struct NodoLibro *raiz) {
 */
 
 int insertarLibro(struct NodoLibro **raiz, struct NodoLibro *nuevo) {
+        
     if (raiz == NULL || nuevo == NULL || nuevo->dato == NULL) {
         return 0;
     }
-
     if (*raiz == NULL) {
         *raiz = nuevo ;
         return 1 ; /*se engancha el nuevo nodo al arbol*/
     }
-
     if (nuevo->dato->codigo < (*raiz)->dato->codigo) {
         return insertarLibro(&((*raiz)->izq), nuevo) ;
-
-    } else if (nuevo->dato->codigo > (*raiz)->dato->codigo) {
-        return insertarLibro(&((*raiz)->der), nuevo) ;
-
-    } else {
+    }else{ 
+        if (nuevo->dato->codigo > (*raiz)->dato->codigo) {
+            return insertarLibro(&((*raiz)->der), nuevo) ;
+    }else{
         return 0 ;
+        }   
     }
 }
 
@@ -1251,7 +1139,8 @@ int insertarLibro(struct NodoLibro **raiz, struct NodoLibro *nuevo) {
 -indica si ya existe un libro con el codigo dado
 */
 
-int existeLibro(struct NodoLibro *raiz, int codigo){
+int existeLibro(struct NodoLibro *raiz, int codigo) {
+        
     return buscarLibro(raiz, codigo) != NULL ;
 }
 
@@ -1260,6 +1149,7 @@ int existeLibro(struct NodoLibro *raiz, int codigo){
 */
 
 int contarLibros(struct NodoLibro *raiz) {
+    
     if (raiz == NULL) {
         return 0 ;
     }
@@ -1275,7 +1165,6 @@ void mostrarLibrosPreorden(struct NodoLibro *raiz) {
     if (raiz == NULL) {
         return ;
     }
-
     printf("Codigo: %d, Nombre: %s\n", raiz->dato->codigo, raiz->dato->nombre) ;
     mostrarLibrosPreorden(raiz->izq) ;
     mostrarLibrosPreorden(raiz->der) ;
@@ -1294,13 +1183,10 @@ int modificarPrecio(struct NodoLibro *raiz, int codigo, int nuevoPrecio) {
     if (nodo == NULL) {
         return 0 ;
     }
-
     if (nuevoPrecio < 0) {
         return 0 ;
     }
-
     nodo->dato->precio = nuevoPrecio ;
-
     return 1 ;
 }
 
@@ -1320,69 +1206,47 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
     if (nodo == NULL) {
         return 0 ;
     }
-
-    if (cantidad <= 0 || nodo->dato->ejemplaresDisponibles < 0 ||
-        (unsigned int)nodo->dato->ejemplaresDisponibles >
-            ((unsigned int)-1 >> 1) - (unsigned int)cantidad) {
+    if (cantidad <= 0 || nodo->dato->ejemplaresDisponibles < 0 || (unsigned int)nodo->dato->ejemplaresDisponibles >((unsigned int)-1 >> 1) - (unsigned int)cantidad) {
         return 0 ; /*cantidad invalida*/
     }
-
     if (nodo->dato->disponibilidad == 4) {
         return 0 ; /*descatalogado (4): no recibe despachos*/
     }
-
     nodo->dato->ejemplaresDisponibles += cantidad ;
-
-    if (nodo->dato->disponibilidad == 2 ||
-        nodo->dato->disponibilidad == 3) {
+    if (nodo->dato->disponibilidad == 2 || nodo->dato->disponibilidad == 3) {
         nodo->dato->disponibilidad = 1 ;
     }
-
     return 1 ;
 }
 
-int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz,
-                     int codigo, int rut, int cantidad) {
+int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz,int codigo, int rut, int cantidad) {
+    
     struct NodoLibro *nodo;
     struct Libro *libro;
     int unidadesVendidas;
     int ingreso;
     int reservasPendientes;
 
-    if (tienda == NULL || cantidad <= 0 ||
-        (nodo = buscarLibro(raiz, codigo)) == NULL) {
+    if (tienda == NULL || cantidad <= 0 || (nodo = buscarLibro(raiz, codigo)) == NULL) {
         return 0;
     }
     libro = nodo->dato;
-
-    if (libro == NULL || libro->precio < 0 ||
-        tienda->recaudacion < 0) {
+    if (libro == NULL || libro->precio < 0 || tienda->recaudacion < 0) {
         return 0;
     }
-
     reservasPendientes = libro->headReserva != NULL;
     if (reservasPendientes) {
-        if ((libro->disponibilidad != 1 && libro->disponibilidad != 3) ||
-            libro->headReserva->dato == NULL ||
-            libro->headReserva->dato->reservador == NULL ||
-            libro->headReserva->dato->reservador->rut != rut) {
+        if ((libro->disponibilidad != 1 && libro->disponibilidad != 3) || libro->headReserva->dato == NULL || libro->headReserva->dato->reservador == NULL || libro->headReserva->dato->reservador->rut != rut) {
             return 0;
         }
-    } else if (libro->disponibilidad != 1 ||
-               libro->ejemplaresDisponibles <= 0) {
+    } else if (libro->disponibilidad != 1 || libro->ejemplaresDisponibles <= 0) {
         return 0;
     }
-
     unidadesVendidas = reservasPendientes ? 1 : cantidad;
-    if (!reservasPendientes &&
-        unidadesVendidas > libro->ejemplaresDisponibles) {
+    if (!reservasPendientes &&unidadesVendidas > libro->ejemplaresDisponibles) {
         unidadesVendidas = libro->ejemplaresDisponibles;
     }
-    if (libro->precio > 0 &&
-        (unsigned int)unidadesVendidas >
-            (((unsigned int)-1 >> 1) -
-             (unsigned int)tienda->recaudacion) /
-                (unsigned int)libro->precio) {
+    if (libro->precio > 0 &&(unsigned int)unidadesVendidas >(((unsigned int)-1 >> 1) -(unsigned int)tienda->recaudacion) /(unsigned int)libro->precio) {
         return 0;
     }
 
@@ -1395,10 +1259,8 @@ int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz,
         eliminarReserva(libro, rut);
     }
     if (libro->headReserva == NULL) {
-        libro->disponibilidad =
-            libro->ejemplaresDisponibles == 0 ? 2 : 1;
+        libro->disponibilidad = libro->ejemplaresDisponibles == 0 ? 2 : 1;
     }
-
     return unidadesVendidas;
 }
 
@@ -1408,8 +1270,7 @@ int venderEjemplares(struct Tienda *tienda, struct NodoLibro *raiz,
 -retorna 1 si se marco como descatalogado, 0 si no existe un libro con ese codigo
 */
 
-int descatalogarLibro(struct NodoLibro *raiz, int codigo,
-                      int *reservasCanceladas) {
+int descatalogarLibro(struct NodoLibro *raiz, int codigo,int *reservasCanceladas) {
 
     struct NodoLibro *nodo ;
 
@@ -1418,17 +1279,14 @@ int descatalogarLibro(struct NodoLibro *raiz, int codigo,
     }
 
     nodo = buscarLibro(raiz, codigo) ;
-
     if (nodo == NULL) {
         return 0 ;
     }
-
     if (reservasCanceladas != NULL) {
         *reservasCanceladas = cantidadEnEspera(nodo->dato);
     }
     vaciarCola(nodo->dato);
     nodo->dato->disponibilidad = 4 ;
-
     return 1 ;
 }
 
@@ -1442,7 +1300,6 @@ void liberarLibro(struct Libro *libro) {
     if (libro == NULL) {
         return ;
     }
-
     vaciarCola(libro);
     free(libro->nombre);
     free(libro->publicacion);
@@ -1467,14 +1324,12 @@ int eliminarLibro(struct NodoLibro **raiz, int codigo) {
     if (*raiz == NULL) {
         return 0 ;
     }
-
     if (codigo < (*raiz)->dato->codigo) {
         return eliminarLibro(&((*raiz)->izq), codigo) ;
     }
     if (codigo > (*raiz)->dato->codigo) {
         return eliminarLibro(&((*raiz)->der), codigo) ;
     }
-
     /*dos hijos: el libro a eliminar pasa al sucesor y se elimina desde ahi*/
     if ((*raiz)->izq != NULL && (*raiz)->der != NULL) {
         aux = menorNodo((*raiz)->der) ;
@@ -1483,7 +1338,6 @@ int eliminarLibro(struct NodoLibro **raiz, int codigo) {
         aux->dato = libro ;
         return eliminarLibro(&((*raiz)->der), codigo) ;
     }
-
     /*sin hijos o un hijo: el padre apunta al unico hijo (o a NULL si es hoja)*/
     aux = *raiz ;
     if (aux->izq != NULL) {
@@ -1491,7 +1345,6 @@ int eliminarLibro(struct NodoLibro **raiz, int codigo) {
     } else {
         *raiz = aux->der ;
     }
-
     aux->izq = NULL ;
     aux->der = NULL ;
     liberarLibro(aux->dato);
@@ -1544,7 +1397,6 @@ int agregarLibroASala(struct NodoSala *headSalas, int codigoSala, struct NodoLib
     if (nuevo == NULL || nuevo->dato == NULL) {
         return 0;
     }
-
     if (nuevo->dato->deColeccion == 1) {
         destino = buscarBoveda(headSalas);
         if (destino == NULL) {
@@ -1568,17 +1420,16 @@ int agregarLibroASala(struct NodoSala *headSalas, int codigoSala, struct NodoLib
 -crea una reserva; guarda un puntero al cliente, no lo copia ni es su propietaria
 */
 struct Reserva *crearReserva(struct Cliente *reservador, int tipoPase) {
+    
     struct Reserva *nuevaReserva;
 
     if (reservador == NULL) {
         return NULL;
     }
-
     nuevaReserva = malloc(sizeof(*nuevaReserva));
     if (nuevaReserva == NULL) {
         return NULL;
     }
-
     nuevaReserva->reservador = reservador;
     nuevaReserva->tipoPase = tipoPase;
     return nuevaReserva;
@@ -1588,6 +1439,7 @@ struct Reserva *crearReserva(struct Cliente *reservador, int tipoPase) {
 -envuelve una reserva en un nodo para poder meterla en la cola
 */
 struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
+    
     struct NodoReserva *nuevoNodo;
 
     if (dato == NULL) {
@@ -1598,7 +1450,6 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
     if (nuevoNodo == NULL) {
         return NULL;
     }
-
     nuevoNodo->dato = dato;
     nuevoNodo->sig = NULL;
     return nuevoNodo;
@@ -1609,21 +1460,16 @@ struct NodoReserva *crearNodoReserva(struct Reserva *dato) {
 -solo permite una reserva por cliente y libro; el pase asociado determina prioridad
 -retorna 1 si se agrego y 0 si la reserva no fue valida o falto memoria
 */
-int reservarLibro(struct Libro *libro, struct Cliente *cliente,
-                  struct Pase *pase) {
+int reservarLibro(struct Libro *libro, struct Cliente *cliente,struct Pase *pase) {
+    
     struct Reserva *reserva;
     struct NodoReserva *nodo;
     int esPaseDelCliente = 0;
     int i;
 
-    if (libro == NULL || cliente == NULL || pase == NULL ||
-        libro->disponibilidad == 1 ||  libro->disponibilidad == 4 ||
-        (pase->estado != 1 && pase->estado != 3) ||
-        pase->tipoPase < 1 || pase->tipoPase > 4 ||
-        buscarReserva(libro, cliente->rut) != NULL) {
+    if (libro == NULL || cliente == NULL || pase == NULL || libro->disponibilidad == 1 ||  libro->disponibilidad == 4 || (pase->estado != 1 && pase->estado != 3) || pase->tipoPase < 1 || pase->tipoPase > 4 || buscarReserva(libro, cliente->rut) != NULL) {
         return 0;
     }
-
     /* la identidad del pase se verifica por referencia dentro del arreglo del cliente */
     for (i = 0; i < MAXPASES; i++) {
         if (cliente->pases[i] == pase) {
@@ -1634,18 +1480,15 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
     if (!esPaseDelCliente) {
         return 0;
     }
-
     reserva = crearReserva(cliente, pase->tipoPase);
     if (reserva == NULL) {
         return 0;
     }
-
     nodo = crearNodoReserva(reserva);
     if (nodo == NULL) {
         free(reserva);
         return 0;
     }
-
     if (!encolar(libro, nodo)) {
         free(nodo);
         free(reserva);
@@ -1663,15 +1506,12 @@ int reservarLibro(struct Libro *libro, struct Cliente *cliente,
 -retorna 1 si se agrego, 0 si no
 */
 int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
+    
     struct NodoReserva *rec;
 
-    if (libro == NULL || nuevo == NULL || nuevo->dato == NULL ||
-        nuevo->dato->reservador == NULL ||libro->disponibilidad == 1 ||  libro->disponibilidad == 4||
-        nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 ||
-        nuevo->sig != NULL) {
+    if (libro == NULL || nuevo == NULL || nuevo->dato == NULL || nuevo->dato->reservador == NULL || libro->disponibilidad == 1 ||  libro->disponibilidad == 4 || nuevo->dato->tipoPase < 1 || nuevo->dato->tipoPase > 4 || nuevo->sig != NULL) {
         return 0;
     }
-
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         if (rec == nuevo ||
             (rec->dato != NULL && rec->dato->reservador != NULL &&
@@ -1679,7 +1519,6 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
             return 0;
         }
     }
-
     /* caso 1: lista vacia, el nuevo nodo queda como head */
     if (libro->headReserva == NULL) {
         libro->headReserva = nuevo;
@@ -1703,7 +1542,6 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
         while (rec->sig != NULL && rec->sig->dato->tipoPase == 4) {
             rec = rec->sig;
         }
-
         nuevo->sig = rec->sig;
         rec->sig = nuevo;
     }
@@ -1714,15 +1552,14 @@ int encolar(struct Libro *libro, struct NodoReserva *nuevo) {
 -atiende al primero de la cola: lo desengancha y lo retorna
 */
 struct NodoReserva *desencolar(struct Libro *libro) {
+   
     struct NodoReserva *aux;
 
     if (libro == NULL || libro->headReserva == NULL) {
         return NULL;
     }
-
     aux = libro->headReserva;
     libro->headReserva = aux->sig;
-
     aux->sig = NULL;
     return aux;
 }
@@ -1731,17 +1568,16 @@ struct NodoReserva *desencolar(struct Libro *libro) {
 -retorna cuantas personas esperan en la cola
 */
 int cantidadEnEspera(struct Libro *libro) {
+    
     struct NodoReserva *rec;
     int cantidad = 0;
 
     if (libro == NULL) {
         return 0;
     }
-
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         cantidad++;
     }
-
     return cantidad;
 }
 
@@ -1749,6 +1585,7 @@ int cantidadEnEspera(struct Libro *libro) {
 -muestra las reservas en orden de atencion
 */
 void mostrarCola(struct Libro *libro) {
+    
     struct NodoReserva *rec;
     int pos = 1;
 
@@ -1756,7 +1593,6 @@ void mostrarCola(struct Libro *libro) {
         printf("No hay clientes en lista de espera\n");
         return;
     }
-
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
         printf("%d) %s", pos, rec->dato->reservador->nombre);
         if (rec->dato->tipoPase == 4) {
@@ -1771,19 +1607,17 @@ void mostrarCola(struct Libro *libro) {
 -busca la reserva de un cliente en el libro por su rut
 */
 struct NodoReserva *buscarReserva(struct Libro *libro, int rut) {
+    
     struct NodoReserva *rec;
 
     if (libro == NULL) {
         return NULL;
     }
-
     for (rec = libro->headReserva; rec != NULL; rec = rec->sig) {
-        if (rec->dato != NULL && rec->dato->reservador != NULL &&
-            rec->dato->reservador->rut == rut) {
+        if (rec->dato != NULL && rec->dato->reservador != NULL &&rec->dato->reservador->rut == rut) {
             return rec;
         }
     }
-
     return NULL;
 }
 
@@ -1791,30 +1625,27 @@ struct NodoReserva *buscarReserva(struct Libro *libro, int rut) {
 -elimina de la lista del libro la reserva de un cliente y libera el nodo y la reserva (no al cliente)
 */
 int eliminarReserva(struct Libro *libro, int rut) {
+    
     struct NodoReserva *rec;
     struct NodoReserva *ant = NULL;
 
     if (libro == NULL) {
         return 0;
     }
-
     rec = libro->headReserva;
     while (rec != NULL &&
         (rec->dato == NULL || rec->dato->reservador == NULL || rec->dato->reservador->rut != rut)) {
         ant = rec;
         rec = rec->sig;
     }
-
     if (rec == NULL) {
         return 0;
     }
-
     if (ant == NULL) {
         libro->headReserva = rec->sig;
     } else {
         ant->sig = rec->sig;
     }
-
     free(rec->dato);
     free(rec);
     return 1;
@@ -1826,18 +1657,15 @@ int eliminarReserva(struct Libro *libro, int rut) {
 -retorna 1 si se modifico, 0 si no se pudo
 */
 int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *nuevoPase) {
+    
     struct NodoReserva *nodo;
     struct NodoReserva *ant = NULL;
     int esPaseDelCliente = 0;
     int i;
 
-    if (libro == NULL || cliente == NULL || nuevoPase == NULL ||
-        libro->disponibilidad == 1 ||  libro->disponibilidad == 4||
-        (nuevoPase->estado != 1 && nuevoPase->estado != 3) ||
-        nuevoPase->tipoPase < 1 || nuevoPase->tipoPase > 4) {
+    if (libro == NULL || cliente == NULL || nuevoPase == NULL || libro->disponibilidad == 1 ||  libro->disponibilidad == 4 || (nuevoPase->estado != 1 && nuevoPase->estado != 3) || nuevoPase->tipoPase < 1 || nuevoPase->tipoPase > 4) {
         return 0;
     }
-
     /* el pase debe pertenecer al cliente (se compara la direccion, no el codigo) */
     for (i = 0; i < MAXPASES; i++) {
         if (cliente->pases[i] == nuevoPase) {
@@ -1848,11 +1676,9 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
     if (!esPaseDelCliente) {
         return 0;
     }
-
     /* busca la reserva del cliente guardando el nodo anterior */
     nodo = libro->headReserva;
-    while (nodo != NULL &&
-        (nodo->dato == NULL || nodo->dato->reservador == NULL || nodo->dato->reservador->rut != cliente->rut)) {
+    while (nodo != NULL &&(nodo->dato == NULL || nodo->dato->reservador == NULL || nodo->dato->reservador->rut != cliente->rut)) {
         ant = nodo;
         nodo = nodo->sig;
     }
@@ -1860,12 +1686,10 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
     if (nodo == NULL) {
         return 0;
     }
-
     /* si el tipo es el mismo, la prioridad no cambia */
     if (nodo->dato->tipoPase == nuevoPase->tipoPase) {
         return 1;
     }
-
     /* se saca el nodo de la lista sin liberarlo */
     if (ant == NULL) {
         libro->headReserva = nodo->sig;
@@ -1873,7 +1697,6 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
         ant->sig = nodo->sig;
     }
     nodo->sig = NULL;
-
     /* se cambia el tipo y encolar lo vuelve a ubicar segun su prioridad */
     nodo->dato->tipoPase = nuevoPase->tipoPase;
     return encolar(libro, nodo);
@@ -1883,12 +1706,12 @@ int modificarReserva(struct Libro *libro, struct Cliente *cliente, struct Pase *
 /*funciones filaEntrada*/
 
 struct Fila *crearFila(void) {
+    
     struct Fila *fila = malloc(sizeof(*fila));
 
     if (fila == NULL) {
         return NULL;
     }
-
     fila->head = NULL;
     fila->tail = NULL;
     return fila;
@@ -1900,30 +1723,24 @@ struct Fila *crearFila(void) {
 -retorna 1 si el nodo se agrego y 0 si no se pudo agregar
 */
 int encolarFila(struct Fila *fila, struct NodoPase *nuevo) {
+    
     struct NodoPase *rec;
     struct NodoPase *anterior;
 
-    if (fila == NULL || nuevo == NULL || nuevo->paseVigente == NULL ||
-        nuevo->sig != NULL || nuevo->paseVigente->tipoPase < 1 ||
-        nuevo->paseVigente->tipoPase > 4) {
+    if (fila == NULL || nuevo == NULL || nuevo->paseVigente == NULL || nuevo->sig != NULL || nuevo->paseVigente->tipoPase < 1 || nuevo->paseVigente->tipoPase > 4) {
         return 0;
     }
-
     anterior = NULL;
     for (rec = fila->head; rec != NULL; rec = rec->sig) {
-        if (rec == nuevo || rec->paseVigente == NULL ||
-            rec->paseVigente == nuevo->paseVigente ||
-            rec->paseVigente->codigo == nuevo->paseVigente->codigo) {
+        if (rec == nuevo || rec->paseVigente == NULL || rec->paseVigente == nuevo->paseVigente || rec->paseVigente->codigo == nuevo->paseVigente->codigo) {
             return 0;
         }
         anterior = rec;
     }
 
-    if ((fila->head == NULL && fila->tail != NULL) ||
-        (fila->head != NULL && anterior != fila->tail)) {
+    if ((fila->head == NULL && fila->tail != NULL) || (fila->head != NULL && anterior != fila->tail)) {
         return 0;
     }
-
     if (fila->head == NULL) {
         fila->head = nuevo;
         fila->tail = nuevo;
@@ -1937,7 +1754,6 @@ int encolarFila(struct Fila *fila, struct NodoPase *nuevo) {
             anterior = rec;
             rec = rec->sig;
         }
-
         nuevo->sig = rec;
         if (anterior == NULL) {
             fila->head = nuevo;
@@ -1948,7 +1764,6 @@ int encolarFila(struct Fila *fila, struct NodoPase *nuevo) {
             fila->tail = nuevo;
         }
     }
-
     return 1;
 }
 
@@ -1956,12 +1771,12 @@ int encolarFila(struct Fila *fila, struct NodoPase *nuevo) {
 -retira el primer nodo de la fila y lo separa de la lista
 */
 struct NodoPase *desencolarFila(struct Fila *fila) {
+    
     struct NodoPase *primero;
 
     if (fila == NULL || fila->head == NULL) {
         return NULL;
     }
-
     primero = fila->head;
     fila->head = primero->sig;
     if (fila->head == NULL) {
@@ -1975,12 +1790,12 @@ struct NodoPase *desencolarFila(struct Fila *fila) {
 -busca en la fila un pase por su codigo
 */
 struct NodoPase *buscarEnFila(struct Fila *fila, int codigoPase) {
+    
     struct NodoPase *rec;
 
     if (fila == NULL) {
         return NULL;
     }
-
     for (rec = fila->head; rec != NULL; rec = rec->sig) {
         if (rec->paseVigente != NULL &&
             rec->paseVigente->codigo == codigoPase) {
@@ -1995,13 +1810,13 @@ struct NodoPase *buscarEnFila(struct Fila *fila, int codigoPase) {
 -desenlaza el nodo y deja su sig en NULL; no libera memoria ni toca el pase
 */
 int quitarDeFila(struct Fila *fila, int codigoPase) {
+    
     struct NodoPase *rec;
     struct NodoPase *anterior = NULL;
 
     if (fila == NULL) {
         return 0;
     }
-
     rec = fila->head;
     while (rec != NULL && (rec->paseVigente == NULL || rec->paseVigente->codigo != codigoPase)) {
         anterior = rec;
@@ -2010,7 +1825,6 @@ int quitarDeFila(struct Fila *fila, int codigoPase) {
     if (rec == NULL) {
         return 0;
     }
-
     if (anterior == NULL) {
         fila->head = rec->sig;
     } else {
@@ -2024,6 +1838,7 @@ int quitarDeFila(struct Fila *fila, int codigoPase) {
 }
 
 int limpiarLineaEntrada(void) {
+    
     int caracter;
 
     while ((caracter = getchar()) != '\n' && caracter != EOF) {
@@ -2036,6 +1851,7 @@ int limpiarLineaEntrada(void) {
 
 /* retorna 1 si algun cliente ya tiene un pase con ese codigo */
 int codigoPaseUsado(struct Tienda *tienda, int codigo) {
+    
     struct NodoCliente *rec = tienda->headClientes;
 
     if (rec != NULL) {
@@ -2051,6 +1867,7 @@ int codigoPaseUsado(struct Tienda *tienda, int codigo) {
 
 /* recorre el arbol y deja en mejor el libro con mas clientes en espera */
 void buscarMasEsperaABB(struct NodoLibro *nodo, struct Libro **mejor, int *mejorCant) {
+    
     int cant;
 
     if (nodo == NULL) {
@@ -2067,6 +1884,7 @@ void buscarMasEsperaABB(struct NodoLibro *nodo, struct Libro **mejor, int *mejor
 
 /* retorna el libro con mas espera de toda la tienda, o NULL si nadie espera */
 struct Libro *libroMasEspera(struct Tienda *tienda) {
+    
     struct NodoSala *sala;
     struct Libro *mejor = NULL;
     int mejorCant = 0;
@@ -2079,6 +1897,7 @@ struct Libro *libroMasEspera(struct Tienda *tienda) {
 
 /* muestra los libros agotados (disponibilidad 2) del arbol */
 void listarAgotadosArbol(struct NodoLibro *raiz) {
+    
     if (raiz == NULL) {
         return;
     }
@@ -2092,14 +1911,15 @@ void listarAgotadosArbol(struct NodoLibro *raiz) {
 /* dias de espera: despachos necesarios (redondeado hacia arriba) por dias entre despachos */
 /* retorna -1 si los datos no son validos */
 int tiempoEsperaEstimado(struct Libro *libro, int porDespacho, int diasEntre) {
+    
     if (libro == NULL || porDespacho <= 0 || diasEntre <= 0) {
         return -1;
     }
     return ((cantidadEnEspera(libro) + porDespacho - 1) / porDespacho) * diasEntre;
 }
-
 /* ordena de menor a mayor valor los pases de un arreglo (burbuja) */
 void ordenarPasesPorValor(struct Pase **pases, int plibre) {
+    
     int i, j;
     struct Pase *aux;
 
@@ -2244,10 +2064,7 @@ int main(void) {
     publicacion = (char *) malloc(100 * sizeof(char));
     genero = (char *) malloc(100 * sizeof(char));
     fechaPublicacion = (char *) malloc(100 * sizeof(char));
-    if (salaTematica == NULL || salaNombre == NULL || salaHorarioInicio == NULL ||
-        salaHorarioCierre == NULL || nuevoNombre == NULL || nombre == NULL ||
-        nombreLibro == NULL || publicacion == NULL || genero == NULL ||
-        fechaPublicacion == NULL) {
+    if (salaTematica == NULL || salaNombre == NULL || salaHorarioInicio == NULL || salaHorarioCierre == NULL || nuevoNombre == NULL || nombre == NULL || nombreLibro == NULL || publicacion == NULL || genero == NULL || fechaPublicacion == NULL) {
         printf("No hay memoria\n");
         free(salaTematica);
         free(salaNombre);
@@ -2528,9 +2345,7 @@ int main(void) {
                                 hIni = -1;
                                 continue;
                             }
-                        } while (hIni < 0 || hIni > 23 || mIni < 0 || mIni > 59 ||
-                                 hFin < 0 || hFin > 23 || mFin < 0 || mFin > 59 ||
-                                 hIni * 60 + mIni >= hFin * 60 + mFin);
+                        } while (hIni < 0 || hIni > 23 || mIni < 0 || mIni > 59 || hFin < 0 || hFin > 23 || mFin < 0 || mFin > 59 || hIni * 60 + mIni >= hFin * 60 + mFin);
                         if (!estadoTienda) {
                             break;
                         }
@@ -2595,9 +2410,7 @@ int main(void) {
                                 hIni = -1;
                                 continue;
                             }
-                        } while (hIni < 0 || hIni > 23 || mIni < 0 || mIni > 59 ||
-                                 hFin < 0 || hFin > 23 || mFin < 0 || mFin > 59 ||
-                                 hIni * 60 + mIni >= hFin * 60 + mFin);
+                        } while (hIni < 0 || hIni > 23 || mIni < 0 || mIni > 59 || hFin < 0 || hFin > 23 || mFin < 0 || mFin > 59 || hIni * 60 + mIni >= hFin * 60 + mFin);
                         if (!estadoTienda) {
                             break;
                         }
