@@ -1213,8 +1213,10 @@ int recibirDespacho(struct NodoLibro *raiz, int codigo, int cantidad) {
         return 0 ; /*descatalogado (4): no recibe despachos*/
     }
     nodo->dato->ejemplaresDisponibles += cantidad ;
-    if (nodo->dato->disponibilidad == 2 || nodo->dato->disponibilidad == 3) {
-        nodo->dato->disponibilidad = 1 ;
+    if(nodo->dato->ejemplaresDisponibles > 0) {    
+        if (nodo->dato->disponibilidad == 2) {
+            nodo->dato->disponibilidad = 1 ;
+        }
     }
     return 1 ;
 }
